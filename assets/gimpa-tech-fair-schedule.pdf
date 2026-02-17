@@ -1,0 +1,61 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 788 >>
+stream
+BT
+/F1 22 Tf
+72 740 Td
+(GIMPA SOTSS Tech Fair 2026 - Event Schedule) Tj
+0 -28 Td
+/F1 14 Tf
+(Day 1: May 15, 2026) Tj
+0 -20 Td
+(08:00-09:00  Registration and Breakfast  - Main Hall) Tj
+0 -18 Td
+(09:00-10:00  Opening Keynote             - Auditorium) Tj
+0 -18 Td
+(10:30-12:00  AI and Machine Learning     - Lab A) Tj
+0 -30 Td
+(Day 2: May 16, 2026) Tj
+0 -20 Td
+(09:00-10:00  Blockchain and Fintech      - Auditorium) Tj
+0 -18 Td
+(10:30-12:00  Hackathon Kickoff           - Tech Lab) Tj
+0 -18 Td
+(13:00-16:00  Hackathon Continues         - Tech Lab) Tj
+0 -30 Td
+(Day 3: May 17, 2026) Tj
+0 -20 Td
+(09:00-11:00  Hackathon Finals and Judging - Main Hall) Tj
+0 -18 Td
+(13:00-14:30  Closing Keynote             - Auditorium) Tj
+0 -18 Td
+(14:30-15:30  Awards Ceremony             - Auditorium) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001080 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1150
+%%EOF

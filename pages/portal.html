@@ -1,0 +1,175 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Participant Portal - GIMPA SOTSS Tech Fair 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css" />
+  <script defer src="../script.js"></script>
+  <script defer src="../portal.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <div class="brand">
+        <div class="brand-title">GIMPA SOTSS</div>
+        <div class="brand-sub">Tech Fair 2026</div>
+      </div>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="../index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="speakers.html">Speakers</a>
+        <a href="schedule.html">Schedule</a>
+        <a href="sponsors.html">Sponsors</a>
+        <a href="awards-judging.html">Awards</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-accent" href="#registration">Register Now</a>
+        <div class="crest"><img src="../assets/gimpa-logo.png" alt="GIMPA logo" /></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section container" id="registration">
+      <header class="section-header">
+        <h2>Participant Registration</h2>
+        <p>Register to receive your unique ticket for entry and submissions.</p>
+      </header>
+      <div class="card-grid cols-2">
+        <form id="reg-form" class="feature-card" onsubmit="return false;">
+          <div style="display:grid;gap:12px">
+            <label>Full Name<br/>
+              <input type="text" required name="name" placeholder="e.g., Ama Mensah" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <label>Email<br/>
+              <input type="email" required name="email" placeholder="e.g., ama@example.com" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <label>Institution / Company<br/>
+              <input type="text" name="org" placeholder="e.g., GIMPA" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <label>Track<br/>
+              <select name="track" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px">
+                <option>General</option>
+                <option>AI/ML</option>
+                <option>Cybersecurity</option>
+                <option>Fintech</option>
+                <option>HealthTech</option>
+              </select>
+            </label>
+            <button class="btn btn-accent" id="btn-generate">Generate Ticket</button>
+          </div>
+        </form>
+        <div class="feature-card" id="ticket-preview">
+          <h3>Your Ticket</h3>
+          <p id="ticket-status" style="color:#6b7280">Fill the form to generate a ticket</p>
+          <div id="ticket-card" style="display:none;background:#0f3b63;color:#fff;padding:18px;border-radius:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="font-weight:800">GIMPA SOTSS Tech Fair 2026</div>
+              <div style="background:#fff;color:#0f3b63;font-weight:800;padding:6px 10px;border-radius:8px" id="ticket-id">TKT-XXXX</div>
+            </div>
+            <div style="margin-top:10px">
+              <div style="font-size:18px;font-weight:700" id="ticket-name">Name</div>
+              <div style="opacity:.9" id="ticket-email">email@example.com</div>
+              <div style="opacity:.9" id="ticket-track">Track: General</div>
+            </div>
+            <div style="margin-top:12px;font-size:12px;opacity:.8">Date: May 15-17, 2026 | Venue: GIMPA Campus</div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:10px">
+            <button class="btn" id="btn-download" disabled>Download Ticket (PDF)</button>
+            <a class="btn btn-outline" href="#submission">Go to Project Submission</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section container" id="submission">
+      <header class="section-header">
+        <h2>Project Submission</h2>
+        <p>Submit your project details and repository links. You can edit later using your ticket ID.</p>
+      </header>
+      <form id="sub-form" class="feature-card" onsubmit="return false;" style="max-width:840px;margin:0 auto">
+        <div style="display:grid;gap:12px">
+          <label>Ticket ID (from Registration)<br/>
+            <input type="text" required name="ticket" placeholder="e.g., TKT-AB12CD34" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+          </label>
+          <label>Project Title<br/>
+            <input type="text" required name="title" placeholder="Your project title" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+          </label>
+          <label>Short Description<br/>
+            <textarea required name="desc" rows="4" placeholder="Problem, solution, and impact" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"></textarea>
+          </label>
+          <label>Live Demo URL (optional)<br/>
+            <input type="url" name="demo" placeholder="https://..." style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+          </label>
+          <label>Code Repository URL<br/>
+            <input type="url" required name="repo" placeholder="https://github.com/your/repo" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+          </label>
+          <label>Tech Stack<br/>
+            <input type="text" name="stack" placeholder="e.g., React, Node.js, Postgres" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+          </label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-accent" id="btn-submit">Submit / Update</button>
+            <button class="btn" id="btn-view">View My Submission</button>
+          </div>
+          <div id="sub-status" style="color:#6b7280"></div>
+        </div>
+      </form>
+
+      <div class="card-grid cols-2" style="margin-top:24px" id="sub-list-wrap">
+        <div class="feature-card" style="grid-column:1/-1">
+          <h3>My Submission Preview</h3>
+          <div id="submission-preview" style="color:#374151">No submission loaded.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <div class="brand-title">GIMPA SOTSS</div>
+        <p>Ghana Institute of Management and Public Administration - School of Technology and Social Sciences</p>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <ul class="list-plain">
+          <li><a href="../index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="speakers.html">Speakers</a></li>
+          <li><a href="schedule.html">Schedule</a></li>
+          <li><a href="sponsors.html">Sponsors</a></li>
+          <li><a href="sponsorship-benefits.html">Sponsorship Benefits</a></li>
+          <li><a href="awards-judging.html">Awards &amp; Judging</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul class="list-plain">
+          <li>GIMPA Campus, Achimota, Accra, Ghana</li>
+          <li>+233 (0) 302 405 805</li>
+          <li>techfair@gimpa.edu.gh</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow Us</h4>
+        <div class="socials"><span class="social">f</span><span class="social">x</span><span class="social">ig</span><span class="social">in</span></div>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <div>&copy; 2026 GIMPA SOTSS Tech Fair. All rights reserved.</div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Code of Conduct</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+
+
