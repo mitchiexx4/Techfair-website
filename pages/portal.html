@@ -38,7 +38,7 @@
     <section class="section container" id="registration">
       <header class="section-header">
         <h2>Participant Registration</h2>
-        <p>Register to receive your unique ticket for entry and submissions.</p>
+        <p>Register to receive your unique event tag for entry and submissions.</p>
       </header>
       <div class="card-grid cols-2">
         <form id="reg-form" class="feature-card" onsubmit="return false;">
@@ -49,53 +49,67 @@
             <label>Email<br/>
               <input type="email" required name="email" placeholder="e.g., ama@example.com" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
             </label>
+            <label>Phone Number<br/>
+              <input type="tel" required name="phone" placeholder="e.g., +233 24 000 0000" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
             <label>Institution / Company<br/>
               <input type="text" name="org" placeholder="e.g., GIMPA" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
             </label>
-            <label>Track<br/>
+            <label>Registration Category<br/>
               <select name="track" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px">
-                <option>General</option>
-                <option>AI/ML</option>
-                <option>Cybersecurity</option>
-                <option>Fintech</option>
-                <option>HealthTech</option>
+                <option>Competitor</option>
+                <option>Exhibitor</option>
+                <option>General Attendee</option>
+                <option>Participant</option>
+                <option>Industry Professional</option>
+                <option>Media</option>
               </select>
             </label>
-            <button class="btn btn-accent" id="btn-generate">Generate Ticket</button>
+            <label>Upload Photo<br/>
+              <input type="file" required name="photo" accept="image/*" style="width:100%;padding:10px;border:1px solid #e3e8ef;border-radius:10px;background:#fff"/>
+            </label>
+            <button class="btn btn-accent" id="btn-generate">Generate Tag</button>
           </div>
         </form>
         <div class="feature-card" id="ticket-preview">
-          <h3>Your Ticket</h3>
-          <p id="ticket-status" style="color:#6b7280">Fill the form to generate a ticket</p>
-          <div id="ticket-card" style="display:none;background:#0f3b63;color:#fff;padding:18px;border-radius:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div style="font-weight:800">GIMPA SOTSS Tech Fair 2026</div>
-              <div style="background:#fff;color:#0f3b63;font-weight:800;padding:6px 10px;border-radius:8px" id="ticket-id">TKT-XXXX</div>
+          <h3>Your Tag</h3>
+          <p id="ticket-status" style="color:#6b7280">Fill the form to generate your tag</p>
+          <div id="ticket-card" class="id-tag" style="display:none;">
+            <div class="id-tag-header">
+              <div class="id-tag-event">GIMPA SOTSS Tech Fair 2026</div>
+              <div class="id-tag-subtitle">Participant ID Tag</div>
             </div>
-            <div style="margin-top:10px">
-              <div style="font-size:18px;font-weight:700" id="ticket-name">Name</div>
-              <div style="opacity:.9" id="ticket-email">email@example.com</div>
-              <div style="opacity:.9" id="ticket-track">Track: General</div>
+            <div class="id-tag-photo-wrap">
+              <img id="ticket-photo" src="" alt="Participant photo" class="id-tag-photo" />
             </div>
-            <div style="margin-top:12px;font-size:12px;opacity:.8">Date: May 15-17, 2026 | Venue: GIMPA Campus</div>
+            <div class="id-tag-body">
+              <div class="id-tag-name" id="ticket-name">Name</div>
+              <div class="id-tag-category" id="ticket-track">Category: Participants</div>
+              <div class="id-tag-org" id="ticket-org">Organization: N/A</div>
+            </div>
+            <div class="id-tag-footer">
+              <div id="ticket-id">TAG-XXXX</div>
+              <div>Date: May 15-17, 2026</div>
+              <div>Venue: GIMPA Campus</div>
+            </div>
           </div>
           <div style="margin-top:12px;display:flex;gap:10px">
-            <button class="btn" id="btn-download" disabled>Download Ticket (PDF)</button>
-            <a class="btn btn-outline" href="#submission">Go to Project Submission</a>
+            <button class="btn" id="btn-download" disabled>Print / Save Tag (PDF)</button>
+            <a class="btn btn-outline" href="#submission" id="go-submission-link">Go to Project Submission</a>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section container" id="submission">
+    <section class="section container" id="submission" style="display:none">
       <header class="section-header">
         <h2>Project Submission</h2>
-        <p>Submit your project details and repository links. You can edit later using your ticket ID.</p>
+        <p id="submission-description">Submit your project details and repository links. You can edit later using your tag ID.</p>
       </header>
       <form id="sub-form" class="feature-card" onsubmit="return false;" style="max-width:840px;margin:0 auto">
         <div style="display:grid;gap:12px">
-          <label>Ticket ID (from Registration)<br/>
-            <input type="text" required name="ticket" placeholder="e.g., TKT-AB12CD34" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+          <label>Tag ID (from Registration)<br/>
+            <input type="text" required name="ticket" placeholder="e.g., TAG-AB12CD34" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
           </label>
           <label>Project Title<br/>
             <input type="text" required name="title" placeholder="Your project title" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
