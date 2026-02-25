@@ -21,11 +21,26 @@
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <nav class="nav-links" aria-label="Primary">
         <a href="index.html" class="active">Home</a>
-        <a href="pages/about.html">About</a>
+        <div class="nav-dropdown">
+          <button class="nav-drop-toggle" aria-expanded="false" aria-haspopup="true" type="button">About</button>
+          <div class="nav-dropdown-menu">
+            <a href="pages/about-institution.html">About the Institution</a>
+            <a href="pages/about.html">About the Techfair</a>
+            <a href="pages/committee.html">Commitee</a>
+            <a href="pages/schedule.html">Schedule</a>
+            <a href="pages/awards-judging.html">Awards</a>
+          </div>
+        </div>
         <a href="pages/speakers.html">Speakers</a>
-        <a href="pages/schedule.html">Schedule</a>
-        <a href="pages/sponsors.html">Sponsors</a>
-        <a href="pages/awards-judging.html">Awards</a>
+        <div class="nav-dropdown">
+          <button class="nav-drop-toggle" aria-expanded="false" aria-haspopup="true" type="button">Exhibitors and Sponsors</button>
+          <div class="nav-dropdown-menu">
+            <a href="pages/sponsorship-benefits.html">Packages</a>
+            <a href="pages/exhibitor-overview.html">Exhibitor Overview</a>
+            <a href="pages/sponsors.html">Partners and Sponsors</a>
+          </div>
+        </div>
+        <a href="pages/downloads.html">Downloads</a>
       </nav>
       <div class="nav-cta">
         <a class="btn btn-accent" href="pages/portal.html">Register Now</a>
@@ -70,15 +85,24 @@
       </div>
 
       <div class="hero-cta">
-        <a class="btn btn-accent btn-lg" href="pages/portal.html">Register for Free</a>
+        <a class="btn btn-accent btn-lg" href="pages/portal.html">Register</a>
         <a class="btn btn-ghost btn-lg" href="pages/schedule.html">View Schedule</a>
+        <button class="btn btn-ghost btn-lg" id="contact-toggle" type="button">Contact Us</button>
+      </div>
+      <div class="organizer-contact" id="organizer-contact">
+        <h3>Tech Fair Organizer Contacts</h3>
+        <ul>
+          <li><strong>Dr. Nana Ofori:</strong> nana.ofori@gimpa.edu.gh | +233 24 111 2233</li>
+          <li><strong>Maame Yaa Boateng:</strong> maame.boateng@gimpa.edu.gh | +233 24 555 6677</li>
+          <li><strong>Kwaku Asare:</strong> kwaku.asare@gimpa.edu.gh | +233 20 765 4321</li>
+        </ul>
       </div>
     </div>
   </section>
 
   <!-- Three Days of Innovation -->
-  <section class="section container">
-    <div class="split">
+  <section class="section home-about-section">
+    <div class="container split">
       <div class="photo">
         <img src="assets/about-whatsapp.jpg" alt="Participant using a computer">
       </div>
@@ -103,7 +127,7 @@
     </header>
     <div class="card-grid cols-3">
       <article class="speaker-card">
-        <div class="speaker-img" role="img" aria-label="Speaker 1 placeholder"></div>
+        <div class="speaker-img" role="img" aria-label="Dr. Kwame Mensah portrait" style="background-image:url('https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?q=80&amp;w=800&amp;auto=format&amp;fit=crop')"></div>
         <div class="speaker-body">
           <h3>Dr. Kwame Mensah</h3>
           <div class="role orange">Chief Technology Officer</div>
@@ -116,7 +140,7 @@
         </div>
       </article>
       <article class="speaker-card">
-        <div class="speaker-img" role="img" aria-label="Speaker 2 placeholder"></div>
+        <div class="speaker-img" role="img" aria-label="Akua Owusu portrait" style="background-image:url('https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&amp;w=800&amp;auto=format&amp;fit=crop')"></div>
         <div class="speaker-body">
           <h3>Akua Owusu</h3>
           <div class="role orange">Cybersecurity Expert</div>
@@ -129,7 +153,7 @@
         </div>
       </article>
       <article class="speaker-card">
-        <div class="speaker-img" role="img" aria-label="Speaker 3 placeholder"></div>
+        <div class="speaker-img" role="img" aria-label="Samuel Antwi portrait" style="background-image:url('https://images.unsplash.com/photo-1504593811423-6dd665756598?q=80&amp;w=800&amp;auto=format&amp;fit=crop')"></div>
         <div class="speaker-body">
           <h3>Samuel Antwi</h3>
           <div class="role orange">Senior Software Engineer</div>
@@ -223,3 +247,7 @@
   </footer>
 </body>
 </html>
+
+
+
+

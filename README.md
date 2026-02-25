@@ -6,8 +6,21 @@ A website for the 2026 GIMPA SOTSS Tech Fair.
 
 1. Install dependencies:
    `npm install`
-2. Set your environment variable (PowerShell):
-   `$env:MYSQL_URL="mysql://username:password@host:3306/database_name"`
+2. Create a local `.env` file once:
+   `MYSQL_URL=mysql://username:password@host:3306/database_name`
+   `PORT=3000`
+   `SMTP_ENABLED=true`
+   `SMTP_HOST=smtp.gmail.com`
+   `SMTP_PORT=587`
+   `SMTP_USERNAME=your-email@gmail.com`
+   `SMTP_PASSWORD=your-app-password`
+   `SMTP_USE_TLS=true`
+   `SMTP_USE_SSL=false`
+   `SMTP_FROM_EMAIL=your-email@gmail.com`
+   `SMTP_FROM_NAME=GIMPA TECH FAIR`
+   `SMTP_TIMEOUT_SECONDS=30`
+   `SMTP_MAX_RETRIES=3`
+   `SMTP_RETRY_BACKOFF_SECONDS=1.5`
 3. Start server:
    `npm start`
 4. Open:
@@ -20,4 +33,12 @@ The app creates required tables automatically:
 ## Important note about your value
 
 `${{ MySQL.MYSQL_URL }}` is a CI/CD template expression (for workflows), not a runtime value by itself.
-Use the real MySQL connection string in `MYSQL_URL` when running locally or on your host.
+Use the real MySQL connection string in `MYSQL_URL` (or `DATABASE_URL`) when running locally or on your host.
+
+## Email confirmations
+
+When SMTP is enabled, the server sends:
+- A registration confirmation email after `/api/registrations` succeeds
+- A project submission confirmation email after `/api/submissions` succeeds
+
+The API response includes `emailSent` to indicate if the mail send succeeded.

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -21,11 +21,26 @@
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <nav class="nav-links" aria-label="Primary">
         <a href="../index.html">Home</a>
-        <a href="about.html">About</a>
+        <div class="nav-dropdown">
+          <button class="nav-drop-toggle" aria-expanded="false" aria-haspopup="true" type="button">About</button>
+          <div class="nav-dropdown-menu">
+            <a href="about-institution.html">About the Institution</a>
+            <a href="about.html">About the Techfair</a>
+            <a href="committee.html">Commitee</a>
+            <a href="schedule.html">Schedule</a>
+            <a href="awards-judging.html">Awards</a>
+          </div>
+        </div>
         <a href="speakers.html">Speakers</a>
-        <a href="schedule.html">Schedule</a>
-        <a href="sponsors.html">Sponsors</a>
-        <a href="awards-judging.html">Awards</a>
+        <div class="nav-dropdown">
+          <button class="nav-drop-toggle" aria-expanded="false" aria-haspopup="true" type="button">Exhibitors and Sponsors</button>
+          <div class="nav-dropdown-menu">
+            <a href="sponsorship-benefits.html">Packages</a>
+            <a href="exhibitor-overview.html">Exhibitor Overview</a>
+            <a href="sponsors.html">Partners and Sponsors</a>
+          </div>
+        </div>
+        <a href="downloads.html">Downloads</a>
       </nav>
       <div class="nav-cta">
         <a class="btn btn-accent" href="#registration">Register Now</a>
@@ -95,13 +110,13 @@
           </div>
           <div style="margin-top:12px;display:flex;gap:10px">
             <button class="btn" id="btn-download" disabled>Print / Save Tag (PDF)</button>
-            <a class="btn btn-outline" href="#submission" id="go-submission-link">Go to Project Submission</a>
+            <a class="btn btn-outline" href="#submission" id="go-submission-link" hidden>Go to Project Submission</a>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section container" id="submission" style="display:none">
+    <section class="section container" id="submission" hidden>
       <header class="section-header">
         <h2>Project Submission</h2>
         <p id="submission-description">Submit your project details and repository links. You can edit later using your tag ID.</p>
@@ -185,5 +200,10 @@
   </footer>
 </body>
 </html>
+
+
+
+
+
 
 

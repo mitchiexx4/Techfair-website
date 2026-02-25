@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --nav-bg: #083f7a;
   --nav-bg-deep: #062f5a;
   --brand-orange: #ff9800;
@@ -21,10 +21,19 @@ body {
   padding: 0;
   font-family: Inter, "Segoe UI", Tahoma, Arial, sans-serif;
   color: var(--text);
-  background: var(--surface);
+  background-color: var(--surface);
+  background-image: linear-gradient(95deg, rgba(7, 49, 95, 0.2), rgba(7, 49, 95, 0.16)),
+    url("assets/gimpa-campus-home.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 a { color: inherit; }
+
+body.plain-bg {
+  background: #fff;
+}
 
 .container {
   max-width: 1180px;
@@ -95,7 +104,8 @@ a { color: inherit; }
   margin-right: auto;
 }
 
-.nav-links a {
+.nav-links a,
+.nav-drop-toggle {
   text-decoration: none;
   color: #dfeaf9;
   font-weight: 500;
@@ -105,9 +115,54 @@ a { color: inherit; }
 }
 
 .nav-links a:hover,
-.nav-links a.active {
+.nav-links a.active,
+.nav-drop-toggle:hover,
+.nav-drop-toggle.active {
   color: #fff;
   border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
+.nav-drop-toggle {
+  background: transparent;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.nav-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 220px;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--nav-bg-deep);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: var(--shadow-med);
+  z-index: 30;
+}
+
+.nav-dropdown-menu a {
+  padding: 8px 6px;
+  font-size: 15px;
+  border-bottom: 0;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown:focus-within .nav-dropdown-menu,
+.nav-dropdown.open .nav-dropdown-menu {
+  display: flex;
 }
 
 .nav-cta {
@@ -178,11 +233,21 @@ a { color: inherit; }
   border-color: #cad5e3;
 }
 
+.downloads-btn {
+  background: #0c4a8f;
+  color: #fff;
+  border-color: #0c4a8f;
+}
+
+.downloads-btn:hover {
+  background: #083f7a;
+}
+
 .hero {
   position: relative;
   color: #fff;
-  background-image: linear-gradient(95deg, rgba(7, 49, 95, 0.78), rgba(7, 49, 95, 0.78)),
-    url("https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2000&auto=format&fit=crop");
+  background-image: linear-gradient(95deg, rgba(7, 49, 95, 0.32), rgba(7, 49, 95, 0.28)),
+    url("assets/gimpa-campus-home.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -190,7 +255,7 @@ a { color: inherit; }
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, rgba(11, 58, 110, 0.62), rgba(11, 58, 110, 0.42));
+  background: linear-gradient(100deg, rgba(11, 58, 110, 0.28), rgba(11, 58, 110, 0.18));
 }
 
 .hero-content {
@@ -270,6 +335,41 @@ a { color: inherit; }
 .hero-cta {
   display: flex;
   gap: 14px;
+}
+
+.hero-cta .btn-lg {
+  padding: 11px 18px;
+  font-size: 18px;
+}
+
+.home-about-section {
+  background: #fff;
+}
+
+.organizer-contact {
+  margin-top: 14px;
+  max-width: 680px;
+  display: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(9, 45, 86, 0.6);
+  padding: 14px 16px;
+}
+
+.organizer-contact h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.organizer-contact p,
+.organizer-contact li {
+  color: #deebfb;
+  line-height: 1.5;
+}
+
+.organizer-contact ul {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .split {
@@ -629,6 +729,33 @@ a { color: inherit; }
   padding-left: 22px;
 }
 
+.institution-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  margin-top: 12px;
+}
+
+.institution-hero .hero-overlay {
+  background: linear-gradient(100deg, rgba(11, 58, 110, 0.62), rgba(11, 58, 110, 0.52));
+}
+
+.institution-hero .section-header {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 44px 24px;
+}
+
+.institution-hero .section-header h2 {
+  color: #fff;
+}
+
+.institution-hero .section-header p {
+  max-width: 980px;
+  color: #e3eefb;
+}
+
 .budget-table {
   width: 100%;
   border-collapse: collapse;
@@ -776,7 +903,8 @@ a { color: inherit; }
 
 @media (max-width: 1200px) {
   .brand-title { font-size: 24px; }
-  .nav-links a { font-size: 16px; }
+  .nav-links a,
+  .nav-drop-toggle { font-size: 16px; }
   .btn { font-size: 15px; }
   .btn-lg { font-size: 18px; }
   .lead { font-size: 17px; }
@@ -832,7 +960,25 @@ a { color: inherit; }
     margin: 0;
   }
 
-  .nav-links a { font-size: 17px; padding: 8px 0; }
+  .nav-links a,
+  .nav-drop-toggle {
+    font-size: 17px;
+    padding: 8px 0;
+    text-align: left;
+    width: 100%;
+  }
+  .nav-dropdown { display: block; }
+  .nav-dropdown-menu {
+    position: static;
+    margin-top: 6px;
+    min-width: 0;
+    padding: 0 0 0 12px;
+    gap: 2px;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .nav-dropdown-menu a { font-size: 16px; }
   .nav-cta .btn { display: none; }
   .crest { width: 50px; height: 50px; font-size: 19px; }
   .hero-content { padding: 72px 20px 84px; }
@@ -853,4 +999,5 @@ a { color: inherit; }
   height: 100%;
   object-fit: cover;
 }
+
 

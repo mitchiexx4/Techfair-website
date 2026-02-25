@@ -1,0 +1,12 @@
+GIMPA SOTSS TECH FAIR 2026 - LECTURES PACK
+
+This bundle contains lecture references and session summaries.
+
+Included lecture categories:
+1. AI and Machine Learning
+2. Cybersecurity Fundamentals
+3. Product Design and UX
+4. Cloud and DevOps
+5. Software Engineering Best Practices
+
+Contact: techfair@gimpa.edu.gh

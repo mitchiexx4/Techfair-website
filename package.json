@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "express": "^4.21.2",
-    "mysql2": "^3.14.4"
+    "mysql2": "^3.14.4",
+    "nodemailer": "^6.10.1"
   }
 }

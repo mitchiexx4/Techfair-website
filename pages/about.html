@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../styles.css" />
   <script defer src="../script.js"></script>
 </head>
-<body>
+<body class="plain-bg">
   <header class="site-header">
     <div class="container nav">
       <div class="brand">
@@ -20,11 +20,26 @@
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <nav class="nav-links" aria-label="Primary">
         <a href="../index.html">Home</a>
-        <a href="about.html" class="active">About</a>
+        <div class="nav-dropdown">
+          <button class="nav-drop-toggle active" aria-expanded="false" aria-haspopup="true" type="button">About</button>
+          <div class="nav-dropdown-menu">
+            <a href="about-institution.html">About the Institution</a>
+            <a href="about.html" class="active">About the Techfair</a>
+            <a href="committee.html">Commitee</a>
+            <a href="schedule.html">Schedule</a>
+            <a href="awards-judging.html">Awards</a>
+          </div>
+        </div>
         <a href="speakers.html">Speakers</a>
-        <a href="schedule.html">Schedule</a>
-        <a href="sponsors.html">Sponsors</a>
-        <a href="awards-judging.html">Awards</a>
+        <div class="nav-dropdown">
+          <button class="nav-drop-toggle" aria-expanded="false" aria-haspopup="true" type="button">Exhibitors and Sponsors</button>
+          <div class="nav-dropdown-menu">
+            <a href="sponsorship-benefits.html">Packages</a>
+            <a href="exhibitor-overview.html">Exhibitor Overview</a>
+            <a href="sponsors.html">Partners and Sponsors</a>
+          </div>
+        </div>
+        <a href="downloads.html">Downloads</a>
       </nav>
       <div class="nav-cta">
         <a class="btn btn-accent" href="portal.html">Register Now</a>
@@ -36,8 +51,8 @@
   <main>
     <section class="section container">
       <header class="section-header">
-        <h2>About the Tech Fair</h2>
-        <p>The GIMPA School of Technology and Social Sciences Tech Fair is Ghana's premier technology exhibition, bringing together students, professionals, and innovators to showcase the future of technology.</p>
+        <h2>About the GIMPA Tech Fair</h2>
+        <p>The School of Technology and Social Sciences (SOTSS) proudly presents the GIMPA Tech Fair &amp; Industry Showcase, a flagship annual event designed to bridge the gap between academia and industry. This premier platform provides students with the opportunity to exhibit innovative, industry-driven IT projects that demonstrate cutting-edge solutions to real-world challenges. The Tech Fair champions innovation, creativity, and problem-solving, while showcasing the remarkable talent emerging from Ghana's technology ecosystem. By bringing together students, industry professionals, innovators, and thought leaders, the event plays a vital role in cultivating digital talent and contributing to national development through technology and innovation.</p>
       </header>
 
       <div class="features">
@@ -147,5 +162,10 @@
   </footer>
 </body>
 </html>
+
+
+
+
+
 
 

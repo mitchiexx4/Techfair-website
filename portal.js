@@ -282,6 +282,7 @@ function onReady(){
   const btnView = document.getElementById('btn-view');
   const subStatus = document.getElementById('sub-status');
   const subPreview = document.getElementById('submission-preview');
+  let exhibitorUnlocked = false;
 
   function getRegistrationByTag(tag){
     const regs = load(KEY_REG);
@@ -305,8 +306,9 @@ function onReady(){
 
   function setSubmissionAvailability(allowed){
     if(!submissionSection) return;
-    submissionSection.style.display = allowed ? 'block' : 'none';
+    submissionSection.hidden = !allowed;
     if(goSubmissionLink){
+      goSubmissionLink.hidden = !allowed;
       goSubmissionLink.style.opacity = allowed ? '1' : '0.5';
       goSubmissionLink.style.pointerEvents = allowed ? 'auto' : 'none';
       goSubmissionLink.setAttribute('aria-disabled', allowed ? 'false' : 'true');
@@ -315,15 +317,16 @@ function onReady(){
     if(submissionDescription && allowed){
       submissionDescription.textContent = 'Submit your project details and repository links. You can edit later using your tag ID.';
     }
+    if(!allowed && window.location.hash === '#submission'){
+      window.location.hash = '#registration';
+    }
   }
 
   setSubmissionAvailability(false);
 
   if(goSubmissionLink){
-    goSubmissionLink.addEventListener('click', async (e) => {
-      const currentTag = tId?.textContent?.trim() || sessionStorage.getItem('gimpa_tf_last_tag') || '';
-      const allowed = await isExhibitorTagRemote(currentTag);
-      if(!allowed){
+    goSubmissionLink.addEventListener('click', (e) => {
+      if(!exhibitorUnlocked){
         e.preventDefault();
         if(subStatus){
           subStatus.textContent = 'Project submission is only available to users registered as Exhibitor.';
@@ -409,6 +412,7 @@ function onReady(){
       if(submissionIdInput) submissionIdInput.value = ticket;
 
       const canSubmitProject = savedRemote.track === 'Exhibitor';
+      exhibitorUnlocked = canSubmitProject;
       setSubmissionAvailability(canSubmitProject);
       if(!canSubmitProject && subStatus){
         subStatus.textContent = 'Project submission is only available to users registered as Exhibitor.';
@@ -517,7 +521,6 @@ function onReady(){
   if(last){
     const t = document.querySelector('input[name="ticket"]');
     if(t) t.value = last;
-    isExhibitorTagRemote(last).then((allowed) => setSubmissionAvailability(allowed));
   }
 }
 
