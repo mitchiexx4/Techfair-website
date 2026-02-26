@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles.css" />
   <script defer src="../script.js"></script>
+  <script defer src="../downloads.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -59,22 +60,19 @@
         <article class="info-panel">
           <h3>Lectures</h3>
           <p>Download lecture materials from the event sessions.</p>
-          <a class="btn downloads-btn" href="../assets/lectures-pack.txt" download>Download Lectures Pack</a>
+          <div id="downloads-lectures" style="display:grid;gap:10px">Loading files...</div>
         </article>
 
         <article class="info-panel">
           <h3>Fact Sheets</h3>
           <p>Download key fact sheets on the programme, tracks, and participation.</p>
-          <a class="btn downloads-btn" href="../assets/fact-sheets-pack.txt" download>Download Fact Sheets</a>
+          <div id="downloads-facts" style="display:grid;gap:10px">Loading files...</div>
         </article>
 
         <article class="info-panel">
           <h3>Program Proceedings</h3>
           <p>Download proceedings and event records.</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <a class="btn downloads-btn" href="../assets/program-proceedings-pack.txt" download>Download Proceedings Pack</a>
-            <a class="btn downloads-btn" href="../assets/gimpa-tech-fair-schedule.pdf" download>Download Schedule PDF</a>
-          </div>
+          <div id="downloads-proceedings" style="display:grid;gap:10px">Loading files...</div>
         </article>
       </div>
     </section>

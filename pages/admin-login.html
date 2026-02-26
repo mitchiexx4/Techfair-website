@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Login - GIMPA SOTSS Tech Fair 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css" />
+  <script defer src="../admin-login.js"></script>
+  <style>
+    .admin-auth-wrap {
+      min-height: calc(100vh - 220px);
+      display: grid;
+      place-items: center;
+      padding: 28px 16px;
+    }
+    .admin-auth-card {
+      width: min(460px, 96vw);
+      background: #fff;
+      border: 1px solid #d7e2ed;
+      border-radius: 16px;
+      box-shadow: 0 10px 24px rgba(16, 36, 59, 0.08);
+      padding: 22px;
+      display: grid;
+      gap: 12px;
+    }
+    .admin-auth-card h2 {
+      margin: 0 0 4px;
+    }
+    .admin-auth-card input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d7e2ed;
+      border-radius: 10px;
+      font: inherit;
+    }
+    #auth-status {
+      color: #61758a;
+      min-height: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <div class="brand">
+        <div class="brand-title">GIMPA SOTSS</div>
+        <div class="brand-sub">Tech Fair 2026</div>
+      </div>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="../index.html">Home</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-accent" href="portal.html">Register Now</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-auth-wrap">
+    <section class="admin-auth-card">
+      <h2>Admin Login</h2>
+      <p style="margin:0;color:#61758a">Only authorized administrators can sign in. Maximum active sessions: 3 different devices.</p>
+
+      <label>Username<br />
+        <input id="username" type="text" autocomplete="off" />
+      </label>
+
+      <label>Passcode<br />
+        <input id="passcode" type="password" autocomplete="off" />
+      </label>
+
+      <button id="login-btn" class="btn btn-accent" type="button">Log In</button>
+      <div id="auth-status"></div>
+    </section>
+  </main>
+</body>
+</html>

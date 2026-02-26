@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Tag Printing - GIMPA SOTSS Tech Fair 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --ink: #10243b;
+      --muted: #61758a;
+      --line: #d5e0eb;
+      --accent: #0c4a83;
+      --accent-soft: #e8f2ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at top right, #ffffff, var(--bg) 45%);
+    }
+    .wrap {
+      width: min(1100px, 94vw);
+      margin: 28px auto 48px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 30px rgba(16, 36, 59, 0.08);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+    .muted { color: var(--muted); }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+    }
+    input, select, button {
+      font: inherit;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      background: #fff;
+    }
+    input, select { min-height: 42px; }
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-soft {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: #c9def7;
+    }
+    #status {
+      margin-top: 10px;
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .count {
+      margin: 16px 0 8px;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .photo {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display: block;
+      background: #eef3f8;
+    }
+    .meta {
+      padding: 10px 12px;
+      display: grid;
+      gap: 5px;
+      font-size: 13px;
+    }
+    .tag {
+      display: inline-block;
+      background: #0d3b69;
+      color: #fff;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      width: fit-content;
+    }
+  </style>
+  <script defer src="../admin-tags.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <section class="panel">
+      <h1>Admin Tag Printing</h1>
+      <div class="muted">Load registrants, then print or save all tags as PDF in one flow.</div>
+
+      <div class="row">
+        <label for="admin-token">Admin Token</label>
+        <input id="admin-token" type="password" placeholder="Enter admin token" style="min-width:300px" />
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="">All categories</option>
+        </select>
+        <button id="load-btn" class="btn-primary">Load Tags</button>
+        <button id="print-btn" class="btn-soft" disabled>Print / Save PDF</button>
+        <button id="csv-btn" class="btn-soft" disabled>Download CSV</button>
+      </div>
+
+      <div id="status"></div>
+      <div id="count" class="count">0 tags loaded</div>
+      <div id="cards" class="grid"></div>
+    </section>
+  </main>
+</body>
+</html>

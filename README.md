@@ -26,6 +26,25 @@ A website for the 2026 GIMPA SOTSS Tech Fair.
 4. Open:
    `http://localhost:3000/pages/portal`
 
+## Admin login + dashboard (no SQL needed)
+
+1. Restart server:
+   `npm start`
+3. Open:
+   `http://localhost:3000/pages/admin-login`
+4. Log in and use:
+   - `Generated Tags`: load all tags, print/save PDF, download CSV
+   - `Website Content Editor`: update key pages (speakers, schedule, downloads, etc.)
+   - `Downloads File Manager`: upload/replace/delete lecture notes and downloadable files
+   - Only 3 different devices can be logged in at once
+
+Current admin credentials:
+- Username: `Admin`
+- Passcode: `Techfair1234`
+
+Optional fallback:
+- `ADMIN_TOKEN` still works for direct token-based admin API access.
+
 The app creates required tables automatically:
 - `registrations`
 - `project_submissions`

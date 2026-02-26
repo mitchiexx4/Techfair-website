@@ -57,8 +57,30 @@ const setupContactToggle = () => {
   });
 };
 
+const setupAdminLoginButton = () => {
+  const navCta = document.querySelector(".nav-cta");
+  if (!navCta || navCta.querySelector("[data-admin-login='true']")) return;
+
+  const inPagesDir = window.location.pathname.includes("/pages/");
+  const loginHref = inPagesDir ? "admin-login.html" : "pages/admin-login.html";
+
+  const loginBtn = document.createElement("a");
+  loginBtn.href = loginHref;
+  loginBtn.className = "btn btn-outline";
+  loginBtn.textContent = "LOG IN";
+  loginBtn.setAttribute("data-admin-login", "true");
+
+  const crest = navCta.querySelector(".crest");
+  if (crest) {
+    navCta.insertBefore(loginBtn, crest);
+  } else {
+    navCta.appendChild(loginBtn);
+  }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   toggle();
   setupNavDropdowns();
   setupContactToggle();
+  setupAdminLoginButton();
 });

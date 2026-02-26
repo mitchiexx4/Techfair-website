@@ -3,6 +3,7 @@ const fs = require('fs');
 const nodemailer = require('nodemailer');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const crypto = require('crypto');
 
 function loadLocalEnvFile(filePath) {
   try {
@@ -28,7 +29,7 @@ function loadLocalEnvFile(filePath) {
         value = value.slice(1, -1);
       }
 
-      if (key && process.env[key] === undefined) {
+      if (key && (process.env[key] === undefined || process.env[key] === '')) {
         process.env[key] = value;
       }
     }
@@ -55,6 +56,41 @@ const SMTP_FROM_NAME = (process.env.SMTP_FROM_NAME || 'GIMPA TECH FAIR').trim();
 const SMTP_TIMEOUT_SECONDS = Number(process.env.SMTP_TIMEOUT_SECONDS || 30);
 const SMTP_MAX_RETRIES = Number(process.env.SMTP_MAX_RETRIES || 3);
 const SMTP_RETRY_BACKOFF_SECONDS = Number(process.env.SMTP_RETRY_BACKOFF_SECONDS || 1.5);
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || '').trim();
+const ADMIN_USERNAME = 'Admin';
+const ADMIN_PASSCODE = 'Techfair1234';
+const MAX_ADMIN_DEVICE_LOGINS = 3;
+const ADMIN_SESSION_TTL_HOURS = Number(process.env.ADMIN_SESSION_TTL_HOURS || 12);
+const DOWNLOADABLE_EXTENSIONS = new Set([
+  '.txt',
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.ppt',
+  '.pptx',
+  '.xls',
+  '.xlsx',
+  '.zip',
+  '.csv'
+]);
+const DOWNLOAD_SECTIONS = ['Lectures', 'Fact Sheets', 'Program Proceedings'];
+const DOWNLOADS_MANIFEST_PATH = path.join(__dirname, 'assets', 'downloads-manifest.json');
+const ADMIN_EDITABLE_FILES = [
+  'index.html',
+  'pages/about.html',
+  'pages/about-institution.html',
+  'pages/committee.html',
+  'pages/schedule.html',
+  'pages/speakers.html',
+  'pages/sponsors.html',
+  'pages/sponsorship-benefits.html',
+  'pages/exhibitor-overview.html',
+  'pages/awards-judging.html',
+  'pages/downloads.html',
+  'pages/portal.html'
+];
+const adminSessions = new Map();
+const adminDeviceSessions = new Map();
 
 function parseBoolean(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -97,7 +133,7 @@ try {
 }
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 
 const pool = mysql.createPool({
   uri: MYSQL_URL,
@@ -191,6 +227,170 @@ GIMPA TECH FAIR Team`
 
 function normalizeTag(tag) {
   return (tag || '').toString().trim().toUpperCase();
+}
+
+function extractAdminToken(req) {
+  const headerToken = (req.get('x-admin-token') || '').trim();
+  if (headerToken) return headerToken;
+
+  const authHeader = (req.get('authorization') || '').trim();
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+
+  return (req.query.token || '').toString().trim();
+}
+
+function extractAdminSession(req) {
+  const sessionHeader = (req.get('x-admin-session') || '').trim();
+  if (sessionHeader) return sessionHeader;
+  return (req.query.session || '').toString().trim();
+}
+
+function buildAdminSession(username) {
+  const token = crypto.randomBytes(24).toString('hex');
+  const ttlMs = Math.max(1, ADMIN_SESSION_TTL_HOURS) * 60 * 60 * 1000;
+  const expiresAt = Date.now() + ttlMs;
+  const record = { username, expiresAt, deviceId: '' };
+  adminSessions.set(token, record);
+  return { token, expiresAt };
+}
+
+function cleanupExpiredAdminSessions() {
+  for (const [token, session] of adminSessions.entries()) {
+    if (!session || session.expiresAt <= Date.now()) {
+      adminSessions.delete(token);
+      if (session?.deviceId) {
+        const activeToken = adminDeviceSessions.get(session.deviceId);
+        if (activeToken === token) adminDeviceSessions.delete(session.deviceId);
+      }
+    }
+  }
+}
+
+function validateAdminSession(token) {
+  cleanupExpiredAdminSessions();
+  if (!token) return null;
+  const session = adminSessions.get(token);
+  if (!session) return null;
+  if (session.expiresAt <= Date.now()) {
+    adminSessions.delete(token);
+    if (session.deviceId) {
+      const activeToken = adminDeviceSessions.get(session.deviceId);
+      if (activeToken === token) adminDeviceSessions.delete(session.deviceId);
+    }
+    return null;
+  }
+  return session;
+}
+
+function extractAdminDeviceId(req) {
+  const headerDevice = (req.get('x-admin-device') || '').toString().trim();
+  if (headerDevice) return headerDevice;
+  return (req.body?.deviceId || '').toString().trim();
+}
+
+function isAllowedEditableFile(filePath) {
+  const normalized = (filePath || '').toString().replace(/\\/g, '/').trim();
+  return ADMIN_EDITABLE_FILES.includes(normalized);
+}
+
+function resolveEditableAbsolutePath(filePath) {
+  if (!isAllowedEditableFile(filePath)) return '';
+  return path.join(__dirname, filePath);
+}
+
+function isDownloadableAssetName(fileName) {
+  const safeName = (fileName || '').toString().trim();
+  if (!safeName) return false;
+  if (safeName.includes('/') || safeName.includes('\\') || safeName.includes('..')) return false;
+  if (!/^[A-Za-z0-9._-]+$/.test(safeName)) return false;
+  const ext = path.extname(safeName).toLowerCase();
+  return DOWNLOADABLE_EXTENSIONS.has(ext);
+}
+
+function normalizeDownloadSection(section, fileName = '') {
+  const clean = (section || '').toString().trim();
+  if (DOWNLOAD_SECTIONS.includes(clean)) return clean;
+
+  const lowerName = (fileName || '').toString().toLowerCase();
+  if (lowerName.includes('lecture')) return 'Lectures';
+  if (lowerName.includes('fact')) return 'Fact Sheets';
+  if (lowerName.includes('proceeding') || lowerName.includes('schedule')) return 'Program Proceedings';
+  return 'Lectures';
+}
+
+async function readDownloadsManifest() {
+  try {
+    const raw = await fs.promises.readFile(DOWNLOADS_MANIFEST_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+async function writeDownloadsManifest(manifest) {
+  const safe = manifest && typeof manifest === 'object' ? manifest : {};
+  const body = JSON.stringify(safe, null, 2);
+  await fs.promises.writeFile(DOWNLOADS_MANIFEST_PATH, body, 'utf8');
+}
+
+async function listDownloadableAssets() {
+  const manifest = await readDownloadsManifest();
+  const assetsDir = path.join(__dirname, 'assets');
+  let names = [];
+  try {
+    names = await fs.promises.readdir(assetsDir);
+  } catch {
+    return [];
+  }
+
+  const files = [];
+  for (const fileName of names) {
+    if (!isDownloadableAssetName(fileName)) continue;
+    const abs = path.join(assetsDir, fileName);
+    try {
+      const stat = await fs.promises.stat(abs);
+      if (!stat.isFile()) continue;
+      files.push({
+        fileName,
+        url: `/assets/${fileName}`,
+        size: stat.size,
+        updatedAt: stat.mtime.toISOString(),
+        section: normalizeDownloadSection(manifest[fileName]?.section, fileName)
+      });
+    } catch {
+      // Ignore files that disappear during listing.
+    }
+  }
+
+  files.sort((a, b) => a.fileName.localeCompare(b.fileName));
+  return files;
+}
+
+function requireAdmin(req, res, next) {
+  const adminSession = validateAdminSession(extractAdminSession(req));
+  if (adminSession) {
+    req.admin = { username: adminSession.username, via: 'session' };
+    return next();
+  }
+
+  if (!ADMIN_TOKEN) {
+    return res.status(503).json({
+      ok: false,
+      error: 'Admin access is not configured. Set ADMIN_TOKEN on the server.'
+    });
+  }
+
+  const token = extractAdminToken(req);
+  if (!token || token !== ADMIN_TOKEN) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized admin request.' });
+  }
+
+  req.admin = { username: 'token-admin', via: 'token' };
+  next();
 }
 
 function generateTag() {
@@ -439,6 +639,203 @@ app.get('/api/submissions/:tag', async (req, res) => {
   }
 });
 
+app.post('/api/admin/login', (req, res) => {
+  const { username, passcode } = req.body || {};
+  const cleanUsername = (username || '').toString().trim();
+  const cleanPasscode = (passcode || '').toString();
+  const deviceId = extractAdminDeviceId(req);
+
+  if (!deviceId || deviceId.length < 8 || deviceId.length > 128) {
+    return res.status(400).json({ ok: false, error: 'Missing or invalid device identifier.' });
+  }
+
+  if (cleanUsername !== ADMIN_USERNAME || cleanPasscode !== ADMIN_PASSCODE) {
+    return res.status(401).json({ ok: false, error: 'Invalid admin credentials.' });
+  }
+
+  cleanupExpiredAdminSessions();
+  const existingTokenForDevice = adminDeviceSessions.get(deviceId);
+  if (!existingTokenForDevice && adminDeviceSessions.size >= MAX_ADMIN_DEVICE_LOGINS) {
+    return res.status(403).json({
+      ok: false,
+      error: 'Maximum allowed admin logins reached (3 devices). Log out from another device first.'
+    });
+  }
+
+  if (existingTokenForDevice) {
+    adminSessions.delete(existingTokenForDevice);
+  }
+
+  const session = buildAdminSession(cleanUsername);
+  const sessionRecord = adminSessions.get(session.token);
+  if (sessionRecord) {
+    sessionRecord.deviceId = deviceId;
+    adminSessions.set(session.token, sessionRecord);
+  }
+  adminDeviceSessions.set(deviceId, session.token);
+
+  res.json({
+    ok: true,
+    sessionToken: session.token,
+    expiresAt: new Date(session.expiresAt).toISOString(),
+    admin: {
+      username: cleanUsername,
+      devicesInUse: adminDeviceSessions.size,
+      maxDevices: MAX_ADMIN_DEVICE_LOGINS
+    }
+  });
+});
+
+app.get('/api/admin/session', requireAdmin, (req, res) => {
+  res.json({ ok: true, admin: req.admin || null });
+});
+
+app.post('/api/admin/logout', requireAdmin, (req, res) => {
+  const token = extractAdminSession(req);
+  if (token) {
+    const session = adminSessions.get(token);
+    adminSessions.delete(token);
+    if (session?.deviceId) {
+      const activeToken = adminDeviceSessions.get(session.deviceId);
+      if (activeToken === token) adminDeviceSessions.delete(session.deviceId);
+    }
+  }
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
+  try {
+    const category = (req.query.category || '').toString().trim();
+
+    const baseSql = `
+      SELECT
+        tag_id AS tag,
+        full_name AS name,
+        email,
+        phone,
+        org,
+        category AS track,
+        photo_data AS photo,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+      FROM ${REG_TABLE}
+    `;
+
+    let sql = `${baseSql} ORDER BY created_at DESC`;
+    let params = [];
+    if (category) {
+      sql = `${baseSql} WHERE category = ? ORDER BY created_at DESC`;
+      params = [category];
+    }
+
+    const [rows] = await pool.query(sql, params);
+    res.json({ ok: true, registrations: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false, error: 'Failed to fetch registrations for admin.' });
+  }
+});
+
+app.get('/api/downloads/files', async (_req, res) => {
+  try {
+    const files = await listDownloadableAssets();
+    res.json({ ok: true, files });
+  } catch {
+    res.status(500).json({ ok: false, error: 'Failed to list downloadable files.' });
+  }
+});
+
+app.get('/api/admin/content/files', requireAdmin, async (_req, res) => {
+  try {
+    const files = ADMIN_EDITABLE_FILES.map((filePath) => ({
+      path: filePath,
+      title: path.basename(filePath)
+    }));
+    const assets = await listDownloadableAssets();
+    res.json({ ok: true, files, assets, downloadSections: DOWNLOAD_SECTIONS });
+  } catch {
+    res.status(500).json({ ok: false, error: 'Failed to load admin file list.' });
+  }
+});
+
+app.get('/api/admin/content/file', requireAdmin, async (req, res) => {
+  try {
+    const filePath = (req.query.path || '').toString().trim();
+    const abs = resolveEditableAbsolutePath(filePath);
+    if (!abs) return res.status(400).json({ ok: false, error: 'File is not editable in admin panel.' });
+
+    const body = await fs.promises.readFile(abs, 'utf8');
+    res.json({ ok: true, path: filePath, content: body });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: `Failed to read file: ${error.message}` });
+  }
+});
+
+app.put('/api/admin/content/file', requireAdmin, async (req, res) => {
+  try {
+    const filePath = (req.body?.path || '').toString().trim();
+    const content = (req.body?.content || '').toString();
+    const abs = resolveEditableAbsolutePath(filePath);
+    if (!abs) return res.status(400).json({ ok: false, error: 'File is not editable in admin panel.' });
+
+    await fs.promises.writeFile(abs, content, 'utf8');
+    res.json({ ok: true, path: filePath });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: `Failed to save file: ${error.message}` });
+  }
+});
+
+app.post('/api/admin/content/assets', requireAdmin, async (req, res) => {
+  try {
+    const fileName = (req.body?.fileName || '').toString().trim();
+    const contentBase64 = (req.body?.contentBase64 || '').toString();
+    const section = normalizeDownloadSection(req.body?.section, fileName);
+    if (!isDownloadableAssetName(fileName)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Unsupported file type or invalid filename. Use letters/numbers and a document extension.'
+      });
+    }
+    if (!contentBase64) {
+      return res.status(400).json({ ok: false, error: 'File content is required.' });
+    }
+
+    const assetsDir = path.join(__dirname, 'assets');
+    const abs = path.join(assetsDir, fileName);
+    const buffer = Buffer.from(contentBase64, 'base64');
+    await fs.promises.writeFile(abs, buffer);
+
+    const manifest = await readDownloadsManifest();
+    manifest[fileName] = { section };
+    await writeDownloadsManifest(manifest);
+
+    res.json({ ok: true, fileName, url: `/assets/${fileName}`, section });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: `Failed to upload file: ${error.message}` });
+  }
+});
+
+app.delete('/api/admin/content/assets/:fileName', requireAdmin, async (req, res) => {
+  try {
+    const fileName = decodeURIComponent(req.params.fileName || '').trim();
+    if (!isDownloadableAssetName(fileName)) {
+      return res.status(400).json({ ok: false, error: 'Invalid file name.' });
+    }
+    const abs = path.join(__dirname, 'assets', fileName);
+    await fs.promises.unlink(abs);
+
+    const manifest = await readDownloadsManifest();
+    if (manifest[fileName]) {
+      delete manifest[fileName];
+      await writeDownloadsManifest(manifest);
+    }
+
+    res.json({ ok: true, fileName });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: `Failed to delete file: ${error.message}` });
+  }
+});
+
 app.use(express.static(path.join(__dirname)));
 
 app.get('/', (_req, res) => {
@@ -447,6 +844,18 @@ app.get('/', (_req, res) => {
 
 app.get('/pages/portal', (_req, res) => {
   res.sendFile(path.join(__dirname, 'pages', 'portal.html'));
+});
+
+app.get('/pages/admin-tags', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'pages', 'admin-tags.html'));
+});
+
+app.get('/pages/admin-login', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'pages', 'admin-login.html'));
+});
+
+app.get('/pages/admin-dashboard', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'pages', 'admin-dashboard.html'));
 });
 
 app.use((err, _req, res, _next) => {
