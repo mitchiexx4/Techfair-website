@@ -38,9 +38,7 @@ A website for the 2026 GIMPA SOTSS Tech Fair.
    - `Downloads File Manager`: upload/replace/delete lecture notes and downloadable files
    - Only 3 different devices can be logged in at once
 
-Current admin credentials:
-- Username: `Admin`
-- Passcode: `Techfair1234`
+
 
 Optional fallback:
 - `ADMIN_TOKEN` still works for direct token-based admin API access.
