@@ -1,6 +1,8 @@
 ﻿// Simple in-browser storage keys
 const KEY_REG = 'gimpa_tf_registrations_v1';
 const KEY_SUB = 'gimpa_tf_submissions_v1';
+const SESSION_REG_COMPLETE = 'gimpa_tf_registration_complete';
+const SESSION_REG_TRACK = 'gimpa_tf_registration_track';
 
 function load(key){
   try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
@@ -51,10 +53,11 @@ async function fetchRegistrationRemote(tag) {
 }
 
 async function saveSubmissionRemote(data) {
-  await apiRequest('/api/submissions', {
+  const res = await apiRequest('/api/submissions', {
     method: 'POST',
     body: JSON.stringify(data)
   });
+  return res.submission;
 }
 
 async function fetchSubmissionRemote(tag) {
@@ -92,6 +95,26 @@ function loadImage(src){
     img.onerror = () => reject(new Error('Could not load image.'));
     img.src = src;
   });
+}
+
+function hoursSince(dateText){
+  const value = new Date(dateText).getTime();
+  if (!value) return Number.POSITIVE_INFINITY;
+  return (Date.now() - value) / (1000 * 60 * 60);
+}
+
+function canEditSubmission(submission){
+  return !!submission && hoursSince(submission.createdAt) <= 24;
+}
+
+function triggerDownload(filename, dataUrl){
+  if(!dataUrl) return;
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename || 'project-proposal';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 function drawRoundedRect(ctx, x, y, w, h, r){
@@ -201,7 +224,7 @@ async function buildTagSnapshot(values){
   // Footer details
   ctx.fillStyle = '#e8f1fe';
   ctx.font = '600 42px Inter, Arial, sans-serif';
-  ctx.fillText('Date: May 15-17, 2026', 56, chipY + 108);
+  ctx.fillText('Date: Apr 16-17, 2026 | Exhibition: Jun 3, 2026', 56, chipY + 108);
   ctx.fillText('Venue: GIMPA Campus', 56, chipY + 166);
 
   return canvas.toDataURL('image/png');
@@ -279,10 +302,15 @@ function onReady(){
 
   const subForm = document.getElementById('sub-form');
   const btnSubmit = document.getElementById('btn-submit');
-  const btnView = document.getElementById('btn-view');
   const subStatus = document.getElementById('sub-status');
   const subPreview = document.getElementById('submission-preview');
+  const submissionSuccess = document.getElementById('submission-success');
+  const submissionSuccessMeta = document.getElementById('submission-success-meta');
+  const btnViewSubmissionState = document.getElementById('btn-view-submission-state');
+  const btnEditSubmissionState = document.getElementById('btn-edit-submission-state');
+  const subListWrap = document.getElementById('sub-list-wrap');
   let exhibitorUnlocked = false;
+  let activeSubmission = null;
 
   function getRegistrationByTag(tag){
     const regs = load(KEY_REG);
@@ -307,6 +335,7 @@ function onReady(){
   function setSubmissionAvailability(allowed){
     if(!submissionSection) return;
     submissionSection.hidden = !allowed;
+    submissionSection.style.display = allowed ? '' : 'none';
     if(goSubmissionLink){
       goSubmissionLink.hidden = !allowed;
       goSubmissionLink.style.opacity = allowed ? '1' : '0.5';
@@ -315,7 +344,7 @@ function onReady(){
       goSubmissionLink.title = allowed ? '' : 'Only Exhibitor registrations can access Project Submission.';
     }
     if(submissionDescription && allowed){
-      submissionDescription.textContent = 'Submit your project details and repository links. You can edit later using your tag ID.';
+      submissionDescription.textContent = 'Submit your project details, abstract, repository link, and project proposal.';
     }
     if(!allowed && window.location.hash === '#submission'){
       window.location.hash = '#registration';
@@ -407,6 +436,8 @@ function onReady(){
       // Persist last-used tag in session for quick access
       sessionStorage.setItem('gimpa_tf_last_ticket', ticket);
       sessionStorage.setItem('gimpa_tf_last_tag', ticket);
+      sessionStorage.setItem(SESSION_REG_COMPLETE, 'true');
+      sessionStorage.setItem(SESSION_REG_TRACK, savedRemote.track || '');
 
       const submissionIdInput = document.querySelector('input[name="ticket"]');
       if(submissionIdInput) submissionIdInput.value = ticket;
@@ -443,6 +474,60 @@ function onReady(){
     });
   }
 
+  function setSubmissionUiState(mode){
+    if(!subForm || !submissionSuccess || !subListWrap) return;
+    const showForm = mode === 'form';
+    subForm.hidden = !showForm;
+    subForm.style.display = showForm ? '' : 'none';
+    submissionSuccess.hidden = mode !== 'success';
+    submissionSuccess.style.display = mode === 'success' ? '' : 'none';
+    subListWrap.hidden = mode !== 'preview';
+    subListWrap.style.display = mode === 'preview' ? '' : 'none';
+  }
+
+  function populateSubmissionForm(ticket, submission){
+    if(!subForm || !submission) return;
+    subForm.elements.ticket.value = ticket || '';
+    subForm.elements.title.value = submission.title || '';
+    subForm.elements.desc.value = submission.desc || '';
+    subForm.elements.demo.value = submission.demo || '';
+    subForm.elements.repo.value = submission.repo || '';
+    subForm.elements.stack.value = submission.stack || '';
+  }
+
+  function updateSuccessState(submission){
+    if(!submissionSuccessMeta || !btnEditSubmissionState) return;
+    const editable = canEditSubmission(submission);
+    submissionSuccessMeta.textContent = editable
+      ? 'Your submission has been saved. You can edit it within 24 hours of submission.'
+      : 'Your submission has been saved. The 24-hour edit window has ended.';
+    btnEditSubmissionState.disabled = !editable;
+    btnEditSubmissionState.style.opacity = editable ? '1' : '0.6';
+    btnEditSubmissionState.title = editable ? '' : 'Editing is only allowed within 24 hours after submission.';
+  }
+
+  function resetSubmissionUi(){
+    activeSubmission = null;
+    if(subForm){
+      subForm.reset();
+    }
+    if(subStatus){
+      subStatus.textContent = '';
+    }
+    if(subPreview){
+      subPreview.textContent = 'No submission loaded.';
+    }
+    if(submissionSuccessMeta){
+      submissionSuccessMeta.textContent = 'Your submission has been saved.';
+    }
+    if(btnEditSubmissionState){
+      btnEditSubmissionState.disabled = false;
+      btnEditSubmissionState.style.opacity = '1';
+      btnEditSubmissionState.title = '';
+    }
+    setSubmissionUiState('form');
+  }
+
   async function renderPreview(ticket){
     let s = null;
     try {
@@ -454,6 +539,9 @@ function onReady(){
         demo: s.demo,
         repo: s.repo,
         stack: s.stack,
+        proposalName: s.proposalName,
+        proposalData: s.proposalData,
+        createdAt: s.createdAt,
         updatedAt: s.updatedAt
       };
       save(KEY_SUB, subs);
@@ -463,18 +551,28 @@ function onReady(){
     }
 
     if(!s){ subPreview.textContent = 'No submission found for this tag ID.'; return; }
+    activeSubmission = s;
     subPreview.innerHTML = `
       <div style="display:grid;gap:6px">
         <div><strong>Tag ID:</strong> ${ticket}</div>
         <div><strong>Title:</strong> ${s.title}</div>
-        <div><strong>Description:</strong><br/>${s.desc.replace(/</g,'&lt;')}</div>
+        <div><strong>Abstract:</strong><br/>${s.desc.replace(/</g,'&lt;')}</div>
         <div><strong>Repository:</strong> <a href="${s.repo}" target="_blank" rel="noopener">${s.repo}</a></div>
         ${s.demo ? `<div><strong>Live Demo:</strong> <a href="${s.demo}" target="_blank" rel="noopener">${s.demo}</a></div>` : ''}
         ${s.stack ? `<div><strong>Tech Stack:</strong> ${s.stack}</div>` : ''}
+        ${s.proposalData ? `<div><strong>Project Proposal:</strong> <button type="button" class="btn btn-outline" id="download-proposal-btn">Download ${escapeHtml(s.proposalName || 'Proposal')}</button></div>` : ''}
+        <div style="color:#6b7280;font-size:12px">Submitted: ${s.createdAt ? new Date(s.createdAt).toLocaleString() : 'N/A'}</div>
         <div style="color:#6b7280;font-size:12px">Updated: ${new Date(s.updatedAt).toLocaleString()}</div>
       </div>
     `;
+    const downloadBtn = document.getElementById('download-proposal-btn');
+    if(downloadBtn && s.proposalData){
+      downloadBtn.addEventListener('click', () => triggerDownload(s.proposalName || 'project-proposal', s.proposalData));
+    }
+    setSubmissionUiState('preview');
   }
+
+  resetSubmissionUi();
 
   if(btnSubmit){
     btnSubmit.addEventListener('click', async () => {
@@ -485,42 +583,104 @@ function onReady(){
       const demo = data.get('demo')?.toString().trim();
       const repo = data.get('repo')?.toString().trim();
       const stack = data.get('stack')?.toString().trim();
-      if(!ticket || !title || !desc || !repo){ subStatus.textContent = 'Tag ID, Title, Description and Repository are required.'; return; }
+      const proposalFile = data.get('proposal');
+      if(!ticket || !title || !desc){ subStatus.textContent = 'Tag ID, Title, and Abstract are required.'; return; }
+      if(!demo && !repo && !stack){
+        subStatus.textContent = 'Please provide at least one of these: Live Demo URL, Code Repository URL, or Tech Stack.';
+        return;
+      }
 
+      let proposalData = activeSubmission?.proposalData || '';
+      let proposalName = activeSubmission?.proposalName || '';
+      if(proposalFile instanceof File && proposalFile.size){
+        const isPdf = proposalFile.type === 'application/pdf' || proposalFile.name.toLowerCase().endsWith('.pdf');
+        if(!isPdf){
+          subStatus.textContent = 'Project proposal must be uploaded as a PDF only.';
+          return;
+        }
+        try{
+          proposalData = await fileToDataUrl(proposalFile);
+          proposalName = proposalFile.name;
+        } catch {
+          subStatus.textContent = 'Unable to read the project proposal file.';
+          return;
+        }
+      }
+
+      subStatus.textContent = 'Submitting project...';
       try {
-        await saveSubmissionRemote({ tag: ticket, title, desc, demo, repo, stack });
+        const savedSubmission = await saveSubmissionRemote({ tag: ticket, title, desc, demo, repo, stack, proposalName, proposalData });
+        activeSubmission = savedSubmission || {
+          tag: ticket,
+          title,
+          desc,
+          demo,
+          repo,
+          stack,
+          proposalName,
+          proposalData,
+          createdAt: activeSubmission?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
       } catch (error) {
         subStatus.textContent = error.message || 'Failed to save submission.';
         return;
       }
 
       const subs = load(KEY_SUB);
-      subs[ticket] = {title, desc, demo, repo, stack, updatedAt: new Date().toISOString()};
+      subs[ticket] = {
+        title,
+        desc,
+        demo,
+        repo,
+        stack,
+        proposalName: activeSubmission.proposalName,
+        proposalData: activeSubmission.proposalData,
+        createdAt: activeSubmission.createdAt || new Date().toISOString(),
+        updatedAt: activeSubmission.updatedAt || new Date().toISOString()
+      };
       save(KEY_SUB, subs);
-      subStatus.textContent = 'Submission saved.';
-      await renderPreview(ticket);
+      subStatus.textContent = '';
+      updateSuccessState(activeSubmission);
+      setSubmissionUiState('success');
     });
   }
 
-  if(btnView){
-    btnView.addEventListener('click', async () => {
-      const data = new FormData(subForm);
-      const ticket = data.get('ticket')?.toString().trim();
-      if(!ticket){ subStatus.textContent = 'Enter Tag ID to view'; return; }
-      const allowed = await isExhibitorTagRemote(ticket);
-      if(!allowed){
-        subStatus.textContent = 'Project submission is only available to users registered as Exhibitor.';
-        return;
-      }
-      await renderPreview(ticket);
+  if(btnViewSubmissionState){
+    btnViewSubmissionState.addEventListener('click', async () => {
+      const ticket = subForm?.elements.ticket.value?.trim();
+      if(ticket) await renderPreview(ticket);
+    });
+  }
+
+  if(btnEditSubmissionState){
+    btnEditSubmissionState.addEventListener('click', () => {
+      if(!activeSubmission || !canEditSubmission(activeSubmission)) return;
+      populateSubmissionForm(subForm?.elements.ticket.value?.trim(), activeSubmission);
+      setSubmissionUiState('form');
+      subStatus.textContent = 'You can edit this submission until 24 hours after the original submission time.';
     });
   }
 
   // Auto-fill tag ID from session if present
+  const registrationComplete = sessionStorage.getItem(SESSION_REG_COMPLETE) === 'true';
+  const registrationTrack = sessionStorage.getItem(SESSION_REG_TRACK) || '';
   const last = sessionStorage.getItem('gimpa_tf_last_tag') || sessionStorage.getItem('gimpa_tf_last_ticket');
-  if(last){
+  if(last && registrationComplete && registrationTrack === 'Exhibitor'){
     const t = document.querySelector('input[name="ticket"]');
     if(t) t.value = last;
+    isExhibitorTagRemote(last).then(async (allowed) => {
+      exhibitorUnlocked = allowed;
+      setSubmissionAvailability(allowed);
+      if(!allowed) return;
+      resetSubmissionUi();
+      if(subForm?.elements.ticket){
+        subForm.elements.ticket.value = last;
+      }
+    });
+  } else {
+    exhibitorUnlocked = false;
+    setSubmissionAvailability(false);
   }
 }
 

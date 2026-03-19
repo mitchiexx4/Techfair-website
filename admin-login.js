@@ -19,27 +19,75 @@ function getOrCreateDeviceId() {
   return deviceId;
 }
 
+function buildAdminLoginEndpoints() {
+  const endpoints = ['/api/admin/login'];
+  const localBackend = 'http://localhost:3000/api/admin/login';
+  const currentOrigin = window.location.origin || '';
+
+  if (!currentOrigin.includes('localhost:3000')) {
+    endpoints.push(localBackend);
+  }
+
+  return endpoints;
+}
+
+async function postLogin(endpoint, username, passcode, deviceId) {
+  return fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, passcode, deviceId })
+  });
+}
+
 async function loginRequest(username, passcode, deviceId) {
-  let response;
-  try {
-    response = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, passcode, deviceId })
-    });
-  } catch {
+  const endpoints = buildAdminLoginEndpoints();
+  let response = null;
+  let saw404 = false;
+
+  for (const endpoint of endpoints) {
+    try {
+      const candidate = await postLogin(endpoint, username, passcode, deviceId);
+      if (candidate.status === 404) {
+        saw404 = true;
+        continue;
+      }
+      response = candidate;
+      break;
+    } catch {
+      // Try next configured endpoint.
+    }
+  }
+
+  if (!response) {
+    if (saw404 && endpoints.length > 1) {
+      throw new Error('Backend server is not reachable on http://localhost:3000. Start it with npm start.');
+    }
     throw new Error('Backend server is not reachable. Start it with npm start.');
   }
 
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
   let payload = {};
-  try {
-    payload = await response.json();
-  } catch {
-    payload = {};
+  let rawText = '';
+
+  if (contentType.includes('application/json')) {
+    try {
+      payload = await response.json();
+    } catch {
+      payload = {};
+    }
+  } else {
+    try {
+      rawText = (await response.text()).trim();
+    } catch {
+      rawText = '';
+    }
   }
 
   if (!response.ok || payload.ok === false) {
-    throw new Error(payload.error || 'Login failed.');
+    const serverError = payload?.error || payload?.message || '';
+    const briefText = rawText ? rawText.replace(/\s+/g, ' ').slice(0, 120) : '';
+    const details = serverError || briefText;
+    throw new Error(details ? `Login failed (${response.status}): ${details}` : `Login failed (${response.status}).`);
   }
 
   return payload;

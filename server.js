@@ -57,8 +57,8 @@ const SMTP_TIMEOUT_SECONDS = Number(process.env.SMTP_TIMEOUT_SECONDS || 30);
 const SMTP_MAX_RETRIES = Number(process.env.SMTP_MAX_RETRIES || 3);
 const SMTP_RETRY_BACKOFF_SECONDS = Number(process.env.SMTP_RETRY_BACKOFF_SECONDS || 1.5);
 const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || '').trim();
-const ADMIN_USERNAME = 'Admin';
-const ADMIN_PASSCODE = 'Techfair1234';
+const ADMIN_USERNAME = (process.env.ADMIN_USERNAME || 'Admin').trim();
+const ADMIN_PASSCODE = (process.env.ADMIN_PASSCODE || 'Techfair1234').trim();
 const MAX_ADMIN_DEVICE_LOGINS = 3;
 const ADMIN_SESSION_TTL_HOURS = Number(process.env.ADMIN_SESSION_TTL_HOURS || 12);
 const DOWNLOADABLE_EXTENSIONS = new Set([
@@ -75,6 +75,11 @@ const DOWNLOADABLE_EXTENSIONS = new Set([
 ]);
 const DOWNLOAD_SECTIONS = ['Lectures', 'Fact Sheets', 'Program Proceedings'];
 const DOWNLOADS_MANIFEST_PATH = path.join(__dirname, 'assets', 'downloads-manifest.json');
+const GIMPA_SITE_URL = 'https://gimpa.edu.gh/';
+const GIMPA_CACHE_TTL_MS = 10 * 60 * 1000;
+const LOCAL_DATA_DIR = path.join(__dirname, 'data');
+const LOCAL_REGISTRATIONS_PATH = path.join(LOCAL_DATA_DIR, 'registrations.json');
+const LOCAL_SUBMISSIONS_PATH = path.join(LOCAL_DATA_DIR, 'submissions.json');
 const ADMIN_EDITABLE_FILES = [
   'index.html',
   'pages/about.html',
@@ -91,6 +96,11 @@ const ADMIN_EDITABLE_FILES = [
 ];
 const adminSessions = new Map();
 const adminDeviceSessions = new Map();
+let gimpaSiteCache = {
+  fetchedAt: 0,
+  chunks: []
+};
+let databaseReady = true;
 
 function parseBoolean(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -106,6 +116,231 @@ function formatFromAddress() {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isDatabaseUnavailable(error) {
+  const code = String(error?.code || '').toUpperCase();
+  const message = String(error?.message || '');
+  return (
+    ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN', 'PROTOCOL_CONNECTION_LOST'].includes(code) ||
+    /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|getaddrinfo|Can't connect|Unable to connect/i.test(message)
+  );
+}
+
+async function ensureLocalDataDir() {
+  await fs.promises.mkdir(LOCAL_DATA_DIR, { recursive: true });
+}
+
+async function readLocalJson(filePath) {
+  try {
+    const raw = await fs.promises.readFile(filePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+async function writeLocalJson(filePath, value) {
+  await ensureLocalDataDir();
+  await fs.promises.writeFile(filePath, JSON.stringify(value, null, 2), 'utf8');
+}
+
+async function readLocalRegistrations() {
+  return readLocalJson(LOCAL_REGISTRATIONS_PATH);
+}
+
+async function writeLocalRegistrations(value) {
+  await writeLocalJson(LOCAL_REGISTRATIONS_PATH, value);
+}
+
+async function readLocalSubmissions() {
+  return readLocalJson(LOCAL_SUBMISSIONS_PATH);
+}
+
+async function writeLocalSubmissions(value) {
+  await writeLocalJson(LOCAL_SUBMISSIONS_PATH, value);
+}
+
+async function ensureLocalTagUnique(candidate) {
+  const records = await readLocalRegistrations();
+  let tag = normalizeTag(candidate) || generateTag();
+  for (let i = 0; i < 10; i += 1) {
+    if (!records[tag]) return tag;
+    tag = generateTag();
+  }
+  throw new Error('Could not generate a unique tag. Please retry.');
+}
+
+async function saveRegistrationLocal({ tag, name, email, phone, org, track, photo }) {
+  const records = await readLocalRegistrations();
+  const cleanEmail = email.toLowerCase();
+  const existing = Object.values(records).find((item) => item.email === cleanEmail);
+  const tagId = existing?.tag || await ensureLocalTagUnique(tag);
+  const now = new Date().toISOString();
+
+  records[tagId] = {
+    tag: tagId,
+    name,
+    email: cleanEmail,
+    phone,
+    org,
+    track,
+    photo,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  };
+
+  await writeLocalRegistrations(records);
+  return records[tagId];
+}
+
+async function getRegistrationLocal(tag) {
+  const records = await readLocalRegistrations();
+  return records[tag] || null;
+}
+
+async function listRegistrationsLocal(category = '') {
+  const records = await readLocalRegistrations();
+  return Object.values(records)
+    .filter((item) => !category || item.track === category)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
+
+async function saveSubmissionLocal({ tag, title, desc, demo, repo, stack, proposalName = '', proposalData = '' }) {
+  const records = await readLocalRegistrations();
+  const reg = records[tag];
+  if (!reg) {
+    const error = new Error('Tag ID not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (reg.track !== 'Exhibitor') {
+    const error = new Error('Only Exhibitor registrations can submit projects.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const submissions = await readLocalSubmissions();
+  const existing = submissions[tag] || null;
+  const createdAt = existing?.createdAt || new Date().toISOString();
+  if (existing && Date.now() - new Date(createdAt).getTime() > 24 * 60 * 60 * 1000) {
+    const error = new Error('Editing is only allowed within 24 hours after submission.');
+    error.statusCode = 403;
+    throw error;
+  }
+  submissions[tag] = {
+    tag,
+    title,
+    desc,
+    demo,
+    repo,
+    stack,
+    proposalName: proposalName || existing?.proposalName || '',
+    proposalData: proposalData || existing?.proposalData || '',
+    createdAt,
+    updatedAt: new Date().toISOString()
+  };
+  await writeLocalSubmissions(submissions);
+  return {
+    submission: submissions[tag],
+    registration: reg
+  };
+}
+
+async function getSubmissionLocal(tag) {
+  const submissions = await readLocalSubmissions();
+  return submissions[tag] || null;
+}
+
+function stripHtmlToText(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeSearch(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+}
+
+function chunkText(text, size = 420) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const chunks = [];
+  for (let i = 0; i < words.length; i += 65) {
+    const chunk = words.slice(i, i + 65).join(' ').trim();
+    if (chunk.length >= 80 && chunk.length <= size * 2) {
+      chunks.push(chunk);
+    }
+  }
+  return chunks;
+}
+
+async function loadGimpaSiteChunks() {
+  const now = Date.now();
+  if (gimpaSiteCache.chunks.length && now - gimpaSiteCache.fetchedAt < GIMPA_CACHE_TTL_MS) {
+    return gimpaSiteCache.chunks;
+  }
+
+  const response = await fetch(GIMPA_SITE_URL, {
+    headers: {
+      'User-Agent': 'GIMPA-Tech-Fair-Chatbot/1.0'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch GIMPA site: ${response.status}`);
+  }
+
+  const html = await response.text();
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = stripHtmlToText(titleMatch?.[1] || 'GIMPA Official Website');
+  const text = stripHtmlToText(html);
+  const textChunks = chunkText(text).map((chunk) => ({
+    title,
+    text: chunk,
+    href: GIMPA_SITE_URL
+  }));
+
+  gimpaSiteCache = {
+    fetchedAt: now,
+    chunks: textChunks
+  };
+
+  return textChunks;
+}
+
+function findBestGimpaMatch(query, chunks) {
+  const tokens = tokenizeSearch(query);
+  if (!tokens.length || !chunks.length) return null;
+
+  const scored = chunks
+    .map((chunk) => {
+      const lower = chunk.text.toLowerCase();
+      let score = 0;
+      tokens.forEach((token) => {
+        if (lower.includes(token)) score += 1;
+      });
+      return { ...chunk, score };
+    })
+    .filter((chunk) => chunk.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (!scored.length || scored[0].score < 2) return null;
+  return scored[0];
 }
 
 if (!MYSQL_URL) {
@@ -432,6 +667,9 @@ async function initDb() {
       demo_url TEXT NULL,
       repo_url TEXT NOT NULL,
       tech_stack TEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      proposal_file_name VARCHAR(255) NULL,
+      proposal_file_data LONGTEXT NULL,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       CONSTRAINT fk_submission_registration
         FOREIGN KEY (tag_id)
@@ -440,14 +678,32 @@ async function initDb() {
         ON UPDATE CASCADE
     )
   `);
+
+  const [submissionColumns] = await pool.query(
+    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+    [SUB_TABLE]
+  );
+  const existingColumns = new Set(submissionColumns.map((row) => row.COLUMN_NAME));
+
+  if (!existingColumns.has('created_at')) {
+    await pool.query(`ALTER TABLE ${SUB_TABLE} ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+  }
+  if (!existingColumns.has('proposal_file_name')) {
+    await pool.query(`ALTER TABLE ${SUB_TABLE} ADD COLUMN proposal_file_name VARCHAR(255) NULL`);
+  }
+  if (!existingColumns.has('proposal_file_data')) {
+    await pool.query(`ALTER TABLE ${SUB_TABLE} ADD COLUMN proposal_file_data LONGTEXT NULL`);
+  }
 }
 
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
-    res.json({ ok: true });
+    databaseReady = true;
+    res.json({ ok: true, mode: 'database' });
   } catch (error) {
-    res.status(500).json({ ok: false, error: 'Database connection failed.' });
+    databaseReady = false;
+    res.json({ ok: true, mode: 'local-fallback', error: 'Database connection failed.' });
   }
 });
 
@@ -473,27 +729,53 @@ app.post('/api/registrations', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Name, email, phone, category and photo are required.' });
     }
 
-    const [existingByEmail] = await pool.query(
-      `SELECT tag_id FROM ${REG_TABLE} WHERE email = ? LIMIT 1`,
-      [cleanEmail]
-    );
-
     let tagId = '';
-    if (existingByEmail.length > 0) {
-      tagId = existingByEmail[0].tag_id;
-      await pool.query(
-        `UPDATE ${REG_TABLE}
-         SET full_name = ?, phone = ?, org = ?, category = ?, photo_data = ?
-         WHERE tag_id = ?`,
-        [fullName, cleanPhone, org, category, photoData, tagId]
+    let savedRegistration = null;
+    try {
+      const [existingByEmail] = await pool.query(
+        `SELECT tag_id FROM ${REG_TABLE} WHERE email = ? LIMIT 1`,
+        [cleanEmail]
       );
-    } else {
-      tagId = await ensureTagUnique(clientTag);
-      await pool.query(
-        `INSERT INTO ${REG_TABLE} (tag_id, full_name, email, phone, org, category, photo_data)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [tagId, fullName, cleanEmail, cleanPhone, org, category, photoData]
-      );
+
+      if (existingByEmail.length > 0) {
+        tagId = existingByEmail[0].tag_id;
+        await pool.query(
+          `UPDATE ${REG_TABLE}
+           SET full_name = ?, phone = ?, org = ?, category = ?, photo_data = ?
+           WHERE tag_id = ?`,
+          [fullName, cleanPhone, org, category, photoData, tagId]
+        );
+      } else {
+        tagId = await ensureTagUnique(clientTag);
+        await pool.query(
+          `INSERT INTO ${REG_TABLE} (tag_id, full_name, email, phone, org, category, photo_data)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [tagId, fullName, cleanEmail, cleanPhone, org, category, photoData]
+        );
+      }
+      databaseReady = true;
+      savedRegistration = {
+        tag: tagId,
+        name: fullName,
+        email: cleanEmail,
+        phone: cleanPhone,
+        org,
+        track: category,
+        photo: photoData
+      };
+    } catch (error) {
+      if (!isDatabaseUnavailable(error)) throw error;
+      databaseReady = false;
+      savedRegistration = await saveRegistrationLocal({
+        tag: clientTag,
+        name: fullName,
+        email: cleanEmail,
+        phone: cleanPhone,
+        org,
+        track: category,
+        photo: photoData
+      });
+      tagId = savedRegistration.tag;
     }
 
     let emailSent = false;
@@ -511,15 +793,8 @@ app.post('/api/registrations', async (req, res) => {
     res.json({
       ok: true,
       emailSent,
-      registration: {
-        tag: tagId,
-        name: fullName,
-        email: cleanEmail,
-        phone: cleanPhone,
-        org,
-        track: category,
-        photo: photoData
-      }
+      mode: databaseReady ? 'database' : 'local-fallback',
+      registration: savedRegistration
     });
   } catch (error) {
     console.error(error);
@@ -532,19 +807,28 @@ app.get('/api/registrations/:tag', async (req, res) => {
     const tag = normalizeTag(req.params.tag);
     if (!tag) return res.status(400).json({ ok: false, error: 'Tag is required.' });
 
-    const [rows] = await pool.query(
-      `SELECT tag_id AS tag, full_name AS name, email, phone, org, category AS track, photo_data AS photo
-       FROM ${REG_TABLE}
-       WHERE tag_id = ?
-       LIMIT 1`,
-      [tag]
-    );
+    let registration = null;
+    try {
+      const [rows] = await pool.query(
+        `SELECT tag_id AS tag, full_name AS name, email, phone, org, category AS track, photo_data AS photo
+         FROM ${REG_TABLE}
+         WHERE tag_id = ?
+         LIMIT 1`,
+        [tag]
+      );
+      databaseReady = true;
+      registration = rows[0] || null;
+    } catch (error) {
+      if (!isDatabaseUnavailable(error)) throw error;
+      databaseReady = false;
+      registration = await getRegistrationLocal(tag);
+    }
 
-    if (rows.length === 0) {
+    if (!registration) {
       return res.status(404).json({ ok: false, error: 'Registration not found.' });
     }
 
-    res.json({ ok: true, registration: rows[0] });
+    res.json({ ok: true, mode: databaseReady ? 'database' : 'local-fallback', registration });
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, error: 'Failed to fetch registration.' });
@@ -553,47 +837,93 @@ app.get('/api/registrations/:tag', async (req, res) => {
 
 app.post('/api/submissions', async (req, res) => {
   try {
-    const { tag, title, desc, demo = '', repo, stack = '' } = req.body || {};
+    const { tag, title, desc, demo = '', repo, stack = '', proposalName = '', proposalData = '' } = req.body || {};
     const tagId = normalizeTag(tag);
     const cleanTitle = (title || '').toString().trim();
     const cleanDesc = (desc || '').toString().trim();
     const cleanDemo = (demo || '').toString().trim();
     const cleanRepo = (repo || '').toString().trim();
     const cleanStack = (stack || '').toString().trim();
+    const cleanProposalName = (proposalName || '').toString().trim();
+    const cleanProposalData = (proposalData || '').toString().trim();
 
     if (!tagId || !cleanTitle || !cleanDesc || !cleanRepo) {
       return res.status(400).json({ ok: false, error: 'Tag ID, title, description and repository are required.' });
     }
 
-    const [regs] = await pool.query(
-      `SELECT category, email, full_name FROM ${REG_TABLE} WHERE tag_id = ? LIMIT 1`,
-      [tagId]
-    );
-    if (regs.length === 0) {
-      return res.status(404).json({ ok: false, error: 'Tag ID not found.' });
-    }
-    if (regs[0].category !== 'Exhibitor') {
-      return res.status(403).json({ ok: false, error: 'Only Exhibitor registrations can submit projects.' });
-    }
+    let regInfo = null;
+    try {
+      const [regs] = await pool.query(
+        `SELECT category, email, full_name FROM ${REG_TABLE} WHERE tag_id = ? LIMIT 1`,
+        [tagId]
+      );
+      if (regs.length === 0) {
+        return res.status(404).json({ ok: false, error: 'Tag ID not found.' });
+      }
+      if (regs[0].category !== 'Exhibitor') {
+        return res.status(403).json({ ok: false, error: 'Only Exhibitor registrations can submit projects.' });
+      }
+      const [existingRows] = await pool.query(
+        `SELECT created_at AS createdAt, proposal_file_name AS proposalName, proposal_file_data AS proposalData
+         FROM ${SUB_TABLE} WHERE tag_id = ? LIMIT 1`,
+        [tagId]
+      );
 
-    await pool.query(
-      `INSERT INTO ${SUB_TABLE} (tag_id, title, description, demo_url, repo_url, tech_stack)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         title = VALUES(title),
-         description = VALUES(description),
-         demo_url = VALUES(demo_url),
-         repo_url = VALUES(repo_url),
-         tech_stack = VALUES(tech_stack),
-         updated_at = CURRENT_TIMESTAMP`,
-      [tagId, cleanTitle, cleanDesc, cleanDemo, cleanRepo, cleanStack]
-    );
+      const existing = existingRows[0] || null;
+      if (existing && Date.now() - new Date(existing.createdAt).getTime() > 24 * 60 * 60 * 1000) {
+        return res.status(403).json({ ok: false, error: 'Editing is only allowed within 24 hours after submission.' });
+      }
+
+      if (existing) {
+        await pool.query(
+          `UPDATE ${SUB_TABLE}
+           SET title = ?, description = ?, demo_url = ?, repo_url = ?, tech_stack = ?, proposal_file_name = ?, proposal_file_data = ?
+           WHERE tag_id = ?`,
+          [
+            cleanTitle,
+            cleanDesc,
+            cleanDemo,
+            cleanRepo,
+            cleanStack,
+            cleanProposalName || existing.proposalName || null,
+            cleanProposalData || existing.proposalData || null,
+            tagId
+          ]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO ${SUB_TABLE} (tag_id, title, description, demo_url, repo_url, tech_stack, proposal_file_name, proposal_file_data)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [tagId, cleanTitle, cleanDesc, cleanDemo, cleanRepo, cleanStack, cleanProposalName || null, cleanProposalData || null]
+        );
+      }
+      databaseReady = true;
+      regInfo = regs[0];
+    } catch (error) {
+      if (!isDatabaseUnavailable(error)) throw error;
+      databaseReady = false;
+      const saved = await saveSubmissionLocal({
+        tag: tagId,
+        title: cleanTitle,
+        desc: cleanDesc,
+        demo: cleanDemo,
+        repo: cleanRepo,
+        stack: cleanStack,
+        proposalName: cleanProposalName,
+        proposalData: cleanProposalData
+      });
+      regInfo = {
+        category: saved.registration.track,
+        email: saved.registration.email,
+        full_name: saved.registration.name
+      };
+    }
 
     let emailSent = false;
     try {
       emailSent = await sendSubmissionConfirmation({
-        email: regs[0].email,
-        name: regs[0].full_name,
+        email: regInfo.email,
+        name: regInfo.full_name,
         tag: tagId,
         title: cleanTitle
       });
@@ -601,10 +931,35 @@ app.post('/api/submissions', async (req, res) => {
       console.error('Failed to send submission confirmation email:', mailError.message);
     }
 
-    res.json({ ok: true, emailSent });
+    const submission = await (async () => {
+      try {
+        const [rows] = await pool.query(
+          `SELECT
+             tag_id AS tag,
+             title,
+             description AS \`desc\`,
+             demo_url AS demo,
+             repo_url AS repo,
+             tech_stack AS stack,
+             proposal_file_name AS proposalName,
+             proposal_file_data AS proposalData,
+             created_at AS createdAt,
+             updated_at AS updatedAt
+           FROM ${SUB_TABLE}
+           WHERE tag_id = ?
+           LIMIT 1`,
+          [tagId]
+        );
+        return rows[0] || null;
+      } catch {
+        return await getSubmissionLocal(tagId);
+      }
+    })();
+
+    res.json({ ok: true, emailSent, mode: databaseReady ? 'database' : 'local-fallback', submission });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ ok: false, error: 'Failed to save submission.' });
+    res.status(error.statusCode || 500).json({ ok: false, error: error.message || 'Failed to save submission.' });
   }
 });
 
@@ -613,26 +968,38 @@ app.get('/api/submissions/:tag', async (req, res) => {
     const tagId = normalizeTag(req.params.tag);
     if (!tagId) return res.status(400).json({ ok: false, error: 'Tag ID is required.' });
 
-    const [rows] = await pool.query(
-      `SELECT
-         tag_id AS tag,
-         title,
-         description AS \`desc\`,
-         demo_url AS demo,
-         repo_url AS repo,
-         tech_stack AS stack,
-         updated_at AS updatedAt
-       FROM ${SUB_TABLE}
-       WHERE tag_id = ?
-       LIMIT 1`,
-      [tagId]
-    );
+    let submission = null;
+    try {
+      const [rows] = await pool.query(
+        `SELECT
+           tag_id AS tag,
+           title,
+           description AS \`desc\`,
+           demo_url AS demo,
+           repo_url AS repo,
+           tech_stack AS stack,
+           proposal_file_name AS proposalName,
+           proposal_file_data AS proposalData,
+           created_at AS createdAt,
+           updated_at AS updatedAt
+         FROM ${SUB_TABLE}
+         WHERE tag_id = ?
+         LIMIT 1`,
+        [tagId]
+      );
+      databaseReady = true;
+      submission = rows[0] || null;
+    } catch (error) {
+      if (!isDatabaseUnavailable(error)) throw error;
+      databaseReady = false;
+      submission = await getSubmissionLocal(tagId);
+    }
 
-    if (rows.length === 0) {
+    if (!submission) {
       return res.status(404).json({ ok: false, error: 'No submission found for this tag.' });
     }
 
-    res.json({ ok: true, submission: rows[0] });
+    res.json({ ok: true, mode: databaseReady ? 'database' : 'local-fallback', submission });
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, error: 'Failed to fetch submission.' });
@@ -642,14 +1009,17 @@ app.get('/api/submissions/:tag', async (req, res) => {
 app.post('/api/admin/login', (req, res) => {
   const { username, passcode } = req.body || {};
   const cleanUsername = (username || '').toString().trim();
-  const cleanPasscode = (passcode || '').toString();
+  const cleanPasscode = (passcode || '').toString().trim();
   const deviceId = extractAdminDeviceId(req);
 
   if (!deviceId || deviceId.length < 8 || deviceId.length > 128) {
     return res.status(400).json({ ok: false, error: 'Missing or invalid device identifier.' });
   }
 
-  if (cleanUsername !== ADMIN_USERNAME || cleanPasscode !== ADMIN_PASSCODE) {
+  const normalizedUsername = cleanUsername.toLowerCase();
+  const expectedUsername = ADMIN_USERNAME.toLowerCase();
+
+  if (normalizedUsername !== expectedUsername || cleanPasscode !== ADMIN_PASSCODE) {
     return res.status(401).json({ ok: false, error: 'Invalid admin credentials.' });
   }
 
@@ -728,8 +1098,16 @@ app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
       params = [category];
     }
 
-    const [rows] = await pool.query(sql, params);
-    res.json({ ok: true, registrations: rows });
+    try {
+      const [rows] = await pool.query(sql, params);
+      databaseReady = true;
+      res.json({ ok: true, mode: 'database', registrations: rows });
+    } catch (error) {
+      if (!isDatabaseUnavailable(error)) throw error;
+      databaseReady = false;
+      const rows = await listRegistrationsLocal(category);
+      res.json({ ok: true, mode: 'local-fallback', registrations: rows });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, error: 'Failed to fetch registrations for admin.' });
@@ -742,6 +1120,51 @@ app.get('/api/downloads/files', async (_req, res) => {
     res.json({ ok: true, files });
   } catch {
     res.status(500).json({ ok: false, error: 'Failed to list downloadable files.' });
+  }
+});
+
+app.get('/api/gimpa-info', async (req, res) => {
+  try {
+    const query = (req.query.q || '').toString().trim();
+    if (!query) {
+      return res.status(400).json({ ok: false, error: 'Query is required.' });
+    }
+
+    const chunks = await loadGimpaSiteChunks();
+    const match = findBestGimpaMatch(query, chunks);
+
+    if (!match) {
+      return res.json({
+        ok: true,
+        found: false,
+        text: "I couldn't find a confident answer on the official GIMPA website, but you can continue on the school site.",
+        link: {
+          label: 'GIMPA Official Website',
+          href: GIMPA_SITE_URL
+        }
+      });
+    }
+
+    res.json({
+      ok: true,
+      found: true,
+      text: `${match.text}\n\nSource: GIMPA official website.`,
+      link: {
+        label: match.title || 'GIMPA Official Website',
+        href: match.href || GIMPA_SITE_URL
+      }
+    });
+  } catch (error) {
+    console.error('Failed to fetch GIMPA site information:', error.message);
+    res.json({
+      ok: true,
+      found: false,
+      text: 'I could not reach the official GIMPA website just now, but you can check it directly here.',
+      link: {
+        label: 'GIMPA Official Website',
+        href: GIMPA_SITE_URL
+      }
+    });
   }
 });
 
@@ -865,11 +1288,15 @@ app.use((err, _req, res, _next) => {
 
 initDb()
   .then(() => {
+    databaseReady = true;
+    console.log('Database connected. Running in database mode.');
+  })
+  .catch((error) => {
+    databaseReady = false;
+    console.error('Failed to initialize database, starting in local fallback mode:', error.message);
+  })
+  .finally(() => {
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
-  })
-  .catch((error) => {
-    console.error('Failed to initialize database:', error);
-    process.exit(1);
   });

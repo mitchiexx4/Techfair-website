@@ -37,7 +37,14 @@ function escHtml(text) {
     .replace(/'/g, '&#39;');
 }
 
-function getContactFallback() {
+function getContactFallback(query = '') {
+  if (isSchoolQuery(query)) {
+    return {
+      text: "I couldn't find a confident answer in the Tech Fair pages, but this question is related to the institute. Please check the official GIMPA website here:",
+      links: [{ label: 'GIMPA Official Website', href: 'https://gimpa.edu.gh/' }]
+    };
+  }
+
   return {
     text: "I couldn't find a confident answer from the website content. Please use the Home page Contact Us section for phone numbers and email.",
     actions: [{ label: 'Open Contact Us', type: 'contact' }]
@@ -51,6 +58,29 @@ function withMoreInfo(text, label, href) {
   };
 }
 
+function isSchoolQuery(query) {
+  const q = (query || '').toLowerCase();
+  return /(gimpa|school|institution|institute|management and public administration|admission|admissions|programme|programmes|program|faculty|faculties|department|departments|campus|vice chancellor|registrar|rector|dean|principal|academics|courses|undergraduate|postgraduate|achimota|accra)/.test(q);
+}
+
+async function fetchSchoolAnswer(query) {
+  try {
+    const res = await fetch(`/api/gimpa-info?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.ok) return null;
+    return {
+      text: data.text,
+      links: data.link ? [data.link] : []
+    };
+  } catch {
+    return {
+      text: 'I could not reach the official GIMPA website just now, but you can check it directly here.',
+      links: [{ label: 'GIMPA Official Website', href: 'https://gimpa.edu.gh/' }]
+    };
+  }
+}
+
 function intentAnswer(query) {
   const q = query.toLowerCase();
   if (/(first place|first prize|1st prize|award for first|winner prize)/.test(q)) {
@@ -62,7 +92,7 @@ function intentAnswer(query) {
   }
   if (/(date|when|what day|event date)/.test(q)) {
     return withMoreInfo(
-      'The Tech Fair runs from May 15 to May 17, 2026.',
+      'The launch is on April 16, 2026, the Tech Festival runs on April 16-17, 2026, and the exhibition is on June 3, 2026.',
       'Event Schedule',
       'pages/schedule.html'
     );
@@ -83,7 +113,7 @@ function intentAnswer(query) {
   }
   if (/(schedule|time table|agenda|date|day 1|day 2|day 3)/.test(q)) {
     return withMoreInfo(
-      'The event has a 3-day schedule with keynotes, workshops, and networking sessions.',
+      'The schedule covers the April 16 launch, the April 17 festival sessions, and the June 3 exhibition showcase.',
       'Event Schedule',
       'pages/schedule.html'
     );
@@ -110,7 +140,7 @@ function intentAnswer(query) {
     );
   }
   if (/(contact|email|phone|call|help person|human)/.test(q)) {
-    return getContactFallback();
+      return getContactFallback(q);
   }
   return null;
 }
@@ -258,7 +288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     panel.hidden = true;
   });
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const query = normalizeSpace(input.value || '');
     if (!query) return;
@@ -272,12 +302,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    if (isSchoolQuery(query)) {
+      const schoolAnswer = await fetchSchoolAnswer(query);
+      if (schoolAnswer) {
+        addMessage(body, schoolAnswer, 'bot');
+        return;
+      }
+    }
+
     const retrieved = retrieveAnswer(query, chunks);
     if (retrieved) {
       addMessage(body, retrieved, 'bot');
       return;
     }
 
-    addMessage(body, getContactFallback(), 'bot');
+    addMessage(body, getContactFallback(query), 'bot');
   });
 });

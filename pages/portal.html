@@ -104,7 +104,7 @@
             </div>
             <div class="id-tag-footer">
               <div id="ticket-id">TAG-XXXX</div>
-              <div>Date: May 15-17, 2026</div>
+              <div>Date: Apr 16-17, 2026 | Exhibition: Jun 3, 2026</div>
               <div>Venue: GIMPA Campus</div>
             </div>
           </div>
@@ -116,40 +116,71 @@
       </div>
     </section>
 
-    <section class="section container" id="submission" hidden>
+    <section class="section container" id="submission" hidden style="display:none">
       <header class="section-header">
         <h2>Project Submission</h2>
-        <p id="submission-description">Submit your project details and repository links. You can edit later using your tag ID.</p>
+        <p id="submission-description">Submit your project details, abstract, repository link, and project proposal.</p>
       </header>
-      <form id="sub-form" class="feature-card" onsubmit="return false;" style="max-width:840px;margin:0 auto">
-        <div style="display:grid;gap:12px">
-          <label>Tag ID (from Registration)<br/>
-            <input type="text" required name="ticket" placeholder="e.g., TAG-AB12CD34" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
-          </label>
-          <label>Project Title<br/>
-            <input type="text" required name="title" placeholder="Your project title" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
-          </label>
-          <label>Short Description<br/>
-            <textarea required name="desc" rows="4" placeholder="Problem, solution, and impact" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"></textarea>
-          </label>
-          <label>Live Demo URL (optional)<br/>
-            <input type="url" name="demo" placeholder="https://..." style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
-          </label>
-          <label>Code Repository URL<br/>
-            <input type="url" required name="repo" placeholder="https://github.com/your/repo" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
-          </label>
-          <label>Tech Stack<br/>
-            <input type="text" name="stack" placeholder="e.g., React, Node.js, Postgres" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
-          </label>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-accent" id="btn-submit">Submit / Update</button>
-            <button class="btn" id="btn-view">View My Submission</button>
+      <div class="card-grid cols-2" style="align-items:start">
+        <div class="feature-card">
+          <h3>Submission Format</h3>
+          <p>Upload your project proposal as a PDF only, and make sure your abstract clearly explains the problem, proposed solution, impact, and implementation approach.</p>
+          <ul style="margin:0;padding-left:18px;color:#4e5d6f;line-height:1.7">
+            <li>Proposal format: PDF only</li>
+            <li>Include project title, team details, abstract, methodology, and expected impact</li>
+            <li>You must provide at least one of these: live demo URL, code repository URL, or tech stack</li>
+            <li>Edits are allowed only within 24 hours after first submission</li>
+          </ul>
+          <div style="margin-top:14px">
+            <label>Upload Project Proposal (PDF only)<br/>
+              <input form="sub-form" type="file" name="proposal" accept=".pdf,application/pdf" style="width:100%;padding:10px;border:1px solid #e3e8ef;border-radius:10px;background:#fff"/>
+            </label>
           </div>
-          <div id="sub-status" style="color:#6b7280"></div>
         </div>
-      </form>
 
-      <div class="card-grid cols-2" style="margin-top:24px" id="sub-list-wrap">
+        <form id="sub-form" class="feature-card" onsubmit="return false;">
+          <div style="display:grid;gap:12px">
+            <label>Tag ID (from Registration)<br/>
+              <input type="text" required name="ticket" placeholder="e.g., TAG-AB12CD34" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <label>Project Title<br/>
+              <input type="text" required name="title" placeholder="Your project title" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <label>Abstract<br/>
+              <textarea required name="desc" rows="4" placeholder="Problem, solution, impact, and key contribution" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"></textarea>
+            </label>
+            <label>Live Demo URL (optional)<br/>
+              <input type="url" name="demo" placeholder="https://..." style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <label>Code Repository URL (optional)<br/>
+              <input type="url" name="repo" placeholder="https://github.com/your/repo" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <label>Tech Stack (optional)<br/>
+              <input type="text" name="stack" placeholder="e.g., React, Node.js, Postgres" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
+            </label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-accent" id="btn-submit">Submit Project</button>
+            </div>
+            <div id="sub-status" style="color:#6b7280"></div>
+          </div>
+        </form>
+      </div>
+
+      <div id="submission-success" class="feature-card" hidden style="max-width:840px;margin:24px auto 0">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div style="width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#e8f8ee;color:#2d7a4b;font-size:30px;font-weight:800">&#10003;</div>
+          <div>
+            <h3 style="margin:0 0 4px">Project Successfully Submitted</h3>
+            <div id="submission-success-meta" style="color:#6b7280">Your submission has been saved.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+          <button class="btn" id="btn-view-submission-state" type="button">View Submission</button>
+          <button class="btn btn-outline" id="btn-edit-submission-state" type="button">Edit Submission</button>
+        </div>
+      </div>
+
+      <div class="card-grid cols-2" style="margin-top:24px" id="sub-list-wrap" hidden>
         <div class="feature-card" style="grid-column:1/-1">
           <h3>My Submission Preview</h3>
           <div id="submission-preview" style="color:#374151">No submission loaded.</div>

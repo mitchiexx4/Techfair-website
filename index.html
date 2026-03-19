@@ -11,7 +11,7 @@
   <script defer src="script.js"></script>
   <script defer src="chatbot.js"></script>
 </head>
-<body>
+<body class="home-page">
   <!-- Header / Navbar -->
   <header class="site-header">
     <div class="container nav">
@@ -19,7 +19,7 @@
         <div class="brand-title">GIMPA SOTSS</div>
         <div class="brand-sub">Tech Fair 2026</div>
       </div>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
       <nav class="nav-links" aria-label="Primary">
         <a href="index.html" class="active">Home</a>
         <div class="nav-dropdown">
@@ -53,6 +53,13 @@
   <!-- Hero -->
   <section class="hero">
     <div class="hero-overlay"></div>
+    <aside class="hero-video-card" aria-label="Tech Fair video advertisement">
+      <div class="hero-video-label">Video Ad</div>
+      <video class="hero-video" autoplay muted loop playsinline controls preload="metadata">
+        <source src="assets/Video Ad.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    </aside>
     <div class="container hero-content">
       <span class="pill">Annual Technology Exhibition</span>
       <h1>
@@ -66,7 +73,7 @@
           <div class="icon">&#128197;</div>
           <div>
             <div class="label">Date</div>
-            <div class="value">May 15-17, 2026</div>
+            <div class="value">Apr 16-17, 2026</div>
           </div>
         </div>
         <div class="info-card">
@@ -93,9 +100,8 @@
       <div class="organizer-contact" id="organizer-contact">
         <h3>Tech Fair Organizer Contacts</h3>
         <ul>
-          <li><strong>Dr. Nana Ofori:</strong> nana.ofori@gimpa.edu.gh | +233 24 111 2233</li>
-          <li><strong>Maame Yaa Boateng:</strong> maame.boateng@gimpa.edu.gh | +233 24 555 6677</li>
-          <li><strong>Kwaku Asare:</strong> kwaku.asare@gimpa.edu.gh | +233 20 765 4321</li>
+          <li><strong>Phone:</strong> 0202798583</li>
+          <li><strong>Email:</strong> techfair@gimpa.edu.gh</li>
         </ul>
       </div>
     </div>
@@ -128,7 +134,7 @@
     </header>
     <div class="card-grid cols-3">
       <article class="speaker-card">
-        <div class="speaker-img" role="img" aria-label="Dr. Kwame Mensah portrait" style="background-image:url('https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?q=80&amp;w=800&amp;auto=format&amp;fit=crop')"></div>
+        <div class="speaker-img" role="img" aria-label="Dr. Kwame Mensah portrait" style="background-image:url('assets/assetsspeaker-kwame.jpg.jpg')"></div>
         <div class="speaker-body">
           <h3>Dr. Kwame Mensah</h3>
           <div class="role orange">Chief Technology Officer</div>
@@ -141,7 +147,7 @@
         </div>
       </article>
       <article class="speaker-card">
-        <div class="speaker-img" role="img" aria-label="Akua Owusu portrait" style="background-image:url('https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&amp;w=800&amp;auto=format&amp;fit=crop')"></div>
+        <div class="speaker-img" role="img" aria-label="Akua Owusu portrait" style="background-image:url('assets/assetsspeaker-akua.jpg.jpg')"></div>
         <div class="speaker-body">
           <h3>Akua Owusu</h3>
           <div class="role orange">Cybersecurity Expert</div>
@@ -154,7 +160,7 @@
         </div>
       </article>
       <article class="speaker-card">
-        <div class="speaker-img" role="img" aria-label="Samuel Antwi portrait" style="background-image:url('https://images.unsplash.com/photo-1504593811423-6dd665756598?q=80&amp;w=800&amp;auto=format&amp;fit=crop')"></div>
+        <div class="speaker-img" role="img" aria-label="Samuel Antwi portrait" style="background-image:url('assets/assetsspeaker-samuel.jpg.jpg')"></div>
         <div class="speaker-body">
           <h3>Samuel Antwi</h3>
           <div class="role orange">Senior Software Engineer</div>
@@ -167,7 +173,7 @@
         </div>
       </article>
     </div>
-    <div class="center">
+    <div class="center speakers-cta">
       <a class="btn btn-outline" href="pages/speakers.html">View all Speakers</a>
     </div>
   </section>
@@ -175,25 +181,32 @@
   <!-- Sponsors (preview) -->
   <section class="section container">
     <header class="section-header">
-      <h2>Our Sponsors</h2>
-      <p>Proudly supported by leading technology companies and organizations</p>
+      <h2>Our Partners</h2>
+      <p>Proudly supported by our institutional and industry partners.</p>
     </header>
     <div class="sponsor-tiers">
-      <h3 class="tier">Platinum Sponsors</h3>
       <div class="sponsor-grid cols-2">
-        <div class="sponsor-card platinum">M<div class="sub">Microsoft</div></div>
-        <div class="sponsor-card platinum">G<div class="sub">Google</div></div>
-      </div>
-      <h3 class="tier">Gold Sponsors</h3>
-      <div class="sponsor-grid cols-3">
-        <div class="sponsor-card gold">IBM<div class="sub">IBM</div></div>
-        <div class="sponsor-card gold">AWS<div class="sub">Amazon Web Services</div></div>
-        <div class="sponsor-card gold">SAP<div class="sub">SAP</div></div>
+        <div class="sponsor-card sponsor-logo-card">
+          <img src="assets/Ministry of Communication, Digital Technology and Innovations logo.png" alt="Ministry of Communication, Digital Technology and Innovations logo" />
+          <div class="sub">Ministry of Communication, Digital Technology and Innovations</div>
+        </div>
+        <div class="sponsor-card sponsor-logo-card">
+          <img src="assets/ministry of environment, science and technology logo..png" alt="Ministry of Environment Science and Technology logo" />
+          <div class="sub">Ministry of Environment Science and Technology</div>
+        </div>
+        <div class="sponsor-card sponsor-logo-card">
+          <img src="assets/african technology forum logo.png" alt="African Technology Forum logo" />
+          <div class="sub">African Technology Forum</div>
+        </div>
+        <div class="sponsor-card sponsor-logo-card">
+          <img src="assets/Apple Telecommunication Engineering logo Limited.png" alt="Apple Telecommunication Engineering Limited logo" />
+          <div class="sub">Apple Telecommunication Engineering Limited</div>
+        </div>
       </div>
     </div>
     <div class="cta-band">
-      <h3>Become a Sponsor</h3>
-      <p>Join industry leaders in supporting the next generation of tech innovators</p>
+      <h3>Become a Partner</h3>
+      <p>Join our institutional and industry partners in supporting the next generation of tech innovators</p>
       <a class="btn btn-accent" href="pages/sponsorship-benefits.html">View Sponsorship Packages</a>
     </div>
   </section>
@@ -248,5 +261,3 @@
   </footer>
 </body>
 </html>
-
-

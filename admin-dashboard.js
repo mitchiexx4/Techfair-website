@@ -149,7 +149,7 @@ function buildTagPrintHtml(rows) {
         </section>
         <footer class="foot">
           <div class="chip">${escapeHtml(r.tag || '')}</div>
-          <div>Date: May 15-17, 2026</div>
+          <div>Date: Apr 16-17, 2026 | Exhibition: Jun 3, 2026</div>
           <div>Venue: GIMPA Campus</div>
         </footer>
       </article>`;
