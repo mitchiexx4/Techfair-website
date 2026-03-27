@@ -175,6 +175,13 @@
       padding-right: 4px;
       font-size: 13px;
     }
+    .quick-link-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
     @media (max-width: 760px) {
       .topbar h1 { font-size: 22px; }
       .easy-grid { grid-template-columns: 1fr; }
@@ -212,6 +219,14 @@
         <div id="tag-cards"></div>
       </article>
 
+      <article class="panel quick-link-card">
+        <div>
+          <h2>Hackathon Confirmation</h2>
+          <div class="muted">Open the list of registrations that selected "Yes" for hackathon participation.</div>
+        </div>
+        <button id="open-hackathon-confirmation" class="btn-primary" type="button">Open Hackathon Page</button>
+      </article>
+
       <article class="panel">
         <h2>Website Content Editor</h2>
         <div class="muted">Advanced mode: edit page code directly. Use Easy Content Updates below for simpler edits.</div>
@@ -227,7 +242,7 @@
 
       <article class="panel">
         <h2>Easy Content Updates</h2>
-        <div class="muted">Beginner-friendly tools for speakers and schedule updates without editing code.</div>
+        <div class="muted">Beginner-friendly tools for speakers, committee, and schedule updates without editing code.</div>
         <div class="easy-grid">
           <section class="easy-card">
             <h3>Speakers</h3>
@@ -250,6 +265,27 @@
             </div>
             <div id="easy-speaker-status" class="status"></div>
             <div id="easy-speaker-list" class="easy-list"></div>
+          </section>
+
+          <section class="easy-card">
+            <h3>Committee</h3>
+            <div class="row">
+              <input id="easy-committee-section" type="text" placeholder="Section (e.g. Co-Chairs)" />
+              <input id="easy-committee-name" type="text" placeholder="Member name" />
+            </div>
+            <div class="row">
+              <input id="easy-committee-role" type="text" placeholder="Role / Position" style="min-width:280px" />
+            </div>
+            <div class="row">
+              <button id="easy-committee-refresh" type="button">Load Committee</button>
+              <button id="easy-committee-add" class="btn-primary" type="button">Add Member</button>
+            </div>
+            <div class="row">
+              <input id="easy-committee-remove-name" type="text" placeholder="Member name to remove" />
+              <button id="easy-committee-remove" class="btn-danger" type="button">Remove</button>
+            </div>
+            <div id="easy-committee-status" class="status"></div>
+            <div id="easy-committee-list" class="easy-list"></div>
           </section>
 
           <section class="easy-card">

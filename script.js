@@ -6,18 +6,33 @@ const toggle = () => {
   const links = document.querySelector(".nav-links");
   if (!btn || !links) return;
 
+  const syncMobileNavState = (open) => {
+    document.body.classList.toggle("mobile-nav-open", open && window.innerWidth <= MOBILE_NAV_BREAKPOINT);
+  };
+
   const closeMenu = () => {
     links.classList.remove("open");
     btn.setAttribute("aria-expanded", "false");
+    syncMobileNavState(false);
   };
 
   btn.addEventListener("click", () => {
     const open = links.classList.toggle("open");
     btn.setAttribute("aria-expanded", open ? "true" : "false");
+    syncMobileNavState(open);
   });
 
   links.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", closeMenu);
+    link.addEventListener("click", (event) => {
+      const href = link.getAttribute("href");
+      if (window.innerWidth <= MOBILE_NAV_BREAKPOINT && href) {
+        event.preventDefault();
+        closeMenu();
+        window.location.assign(href);
+        return;
+      }
+      closeMenu();
+    });
   });
 
   window.addEventListener("resize", () => {
@@ -25,6 +40,9 @@ const toggle = () => {
       links.classList.remove("open");
       btn.setAttribute("aria-expanded", "false");
       links.style.display = "";
+      syncMobileNavState(false);
+    } else {
+      syncMobileNavState(links.classList.contains("open"));
     }
   });
 };
@@ -195,7 +213,6 @@ const setupBrandLogos = () => {
 
   const inPagesDir = window.location.pathname.includes("/pages/");
   const assetBase = inPagesDir ? "../assets" : "assets";
-  const existingMenu = document.querySelector(".nav-cta .logo-menu, .nav-cta .crest");
 
   const copy = document.createElement("div");
   copy.className = "brand-copy";
@@ -207,8 +224,7 @@ const setupBrandLogos = () => {
   logos.className = "brand-logos";
 
   [
-    { src: `${assetBase}/TECHFAIR Logo.jpeg`, alt: "GIMPA Tech Fair logo" },
-    { src: `${assetBase}/SOTSS LOGO.png`, alt: "SOTSS logo" }
+    { src: `${assetBase}/TECHFAIR Logo.jpeg`, alt: "GIMPA Tech Fair logo" }
   ].forEach((item) => {
     const img = document.createElement("img");
     img.className = "brand-logo-image";
@@ -217,12 +233,13 @@ const setupBrandLogos = () => {
     logos.appendChild(img);
   });
 
-  if (existingMenu) {
-    logos.appendChild(existingMenu);
-  }
-
   brand.appendChild(logos);
   brand.appendChild(copy);
+};
+
+const removeNavCrest = () => {
+  const crest = document.querySelector(".nav-cta .crest, .nav-cta .logo-menu");
+  if (crest) crest.remove();
 };
 
 const setupSharedSiteInfo = () => {
@@ -237,15 +254,20 @@ const setupSharedSiteInfo = () => {
   const policyBase = inPagesDir ? "" : "pages/";
 
   if (brandColumn) {
-    const existingLogin = brandColumn.querySelector("[data-footer-admin-login='true']");
-    if (!existingLogin) {
-      const loginLink = document.createElement("a");
-      loginLink.href = loginHref;
-      loginLink.className = "footer-admin-login";
-      loginLink.textContent = "Admin Login";
-      loginLink.setAttribute("data-footer-admin-login", "true");
-      brandColumn.appendChild(loginLink);
-    }
+    const title = brandColumn.querySelector(".brand-title")?.outerHTML || '<div class="brand-title">GIMPA SOTSS</div>';
+    const paragraphs = Array.from(brandColumn.querySelectorAll("p"))
+      .map((node) => node.outerHTML)
+      .join("");
+
+    brandColumn.innerHTML = `
+      ${title}
+      ${paragraphs}
+      <div class="footer-brand-logos">
+        <img class="footer-brand-logo" src="${inPagesDir ? "../assets/gimpa-logo.png" : "assets/gimpa-logo.png"}" alt="GIMPA logo" />
+        <img class="footer-brand-logo" src="${inPagesDir ? "../assets/SOTSS LOGO.png" : "assets/SOTSS LOGO.png"}" alt="SOTSS logo" />
+      </div>
+      <a href="${loginHref}" class="footer-admin-login" data-footer-admin-login="true">Admin Login</a>
+    `;
   }
 
   if (contactColumn) {
@@ -253,7 +275,7 @@ const setupSharedSiteInfo = () => {
       <h4>Contact</h4>
       <ul class="list-plain">
         <li>GIMPA Campus, Achimota, Accra, Ghana</li>
-        <li>0202798583</li>
+        <li>0559044181</li>
         <li>techfair@gimpa.edu.gh</li>
       </ul>
     `;
@@ -275,7 +297,7 @@ const setupSharedSiteInfo = () => {
     organizerContact.innerHTML = `
       <h3>Tech Fair Organizer Contacts</h3>
       <ul>
-        <li><strong>Phone:</strong> 0202798583</li>
+        <li><strong>Phone:</strong> 0559044181</li>
         <li><strong>Email:</strong> techfair@gimpa.edu.gh</li>
       </ul>
     `;
@@ -315,5 +337,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupNavDropdowns();
   setupContactToggle();
   setupBrandLogos();
+  removeNavCrest();
   setupSharedSiteInfo();
 });

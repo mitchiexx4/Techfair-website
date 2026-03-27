@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hackathon Confirmation - GIMPA SOTSS Tech Fair 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script defer src="../admin-hackathon.js"></script>
+  <style>
+    :root {
+      --ink: #10243b;
+      --muted: #60758b;
+      --line: #d6e1ec;
+      --panel: #ffffff;
+      --bg: #f4f8fc;
+      --accent: #0c4a83;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(160deg, #ffffff 0%, var(--bg) 55%);
+    }
+    .wrap {
+      width: min(1160px, 95vw);
+      margin: 20px auto 40px;
+    }
+    .topbar,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .topbar h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+    }
+    button, a {
+      font: inherit;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      text-decoration: none;
+      color: var(--ink);
+      background: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .muted { color: var(--muted); }
+    .status {
+      min-height: 20px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th {
+      background: #f7faff;
+      font-size: 13px;
+      color: #486077;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topbar">
+      <div>
+        <h1>Hackathon Confirmation</h1>
+        <div id="whoami" class="muted">Checking session...</div>
+      </div>
+      <div class="row" style="margin:0">
+        <a class="btn" href="admin-dashboard.html">Back to Dashboard</a>
+        <button id="refresh-hackathon" class="btn btn-primary" type="button">Refresh List</button>
+      </div>
+    </header>
+
+    <section class="panel" style="margin-top:16px">
+      <h2 style="margin:0 0 8px">Participants Who Selected Yes</h2>
+      <div class="muted">This page shows only registrations that confirmed hackathon participation.</div>
+      <div id="hackathon-status" class="status"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tag</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Organization</th>
+              <th>Category</th>
+              <th>Registered</th>
+            </tr>
+          </thead>
+          <tbody id="hackathon-rows">
+            <tr>
+              <td colspan="7">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

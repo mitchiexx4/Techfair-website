@@ -3,6 +3,7 @@ const KEY_REG = 'gimpa_tf_registrations_v1';
 const KEY_SUB = 'gimpa_tf_submissions_v1';
 const SESSION_REG_COMPLETE = 'gimpa_tf_registration_complete';
 const SESSION_REG_TRACK = 'gimpa_tf_registration_track';
+const SESSION_REG_HACKATHON = 'gimpa_tf_registration_hackathon';
 
 function load(key){
   try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
@@ -344,7 +345,7 @@ function onReady(){
       goSubmissionLink.title = allowed ? '' : 'Only Exhibitor registrations can access Project Submission.';
     }
     if(submissionDescription && allowed){
-      submissionDescription.textContent = 'Submit your project details, abstract, repository link, and project proposal.';
+      submissionDescription.textContent = 'Submit your project details and project proposal.';
     }
     if(!allowed && window.location.hash === '#submission'){
       window.location.hash = '#registration';
@@ -366,17 +367,39 @@ function onReady(){
 
   if(btnGen){
     btnGen.addEventListener('click', async () => {
+      btnGen.disabled = true;
+      btnGen.textContent = 'Generating Tag...';
+      tStatus.textContent = 'Please wait a moment while we generate your tag and save your registration.';
       const data = new FormData(regForm);
       const name = data.get('name')?.toString().trim();
       const email = data.get('email')?.toString().trim();
       const phone = data.get('phone')?.toString().trim();
-      if(!name || !email){ tStatus.textContent = 'Name and Email are required'; return; }
-      if(!phone){ tStatus.textContent = 'Phone number is required'; return; }
+      if(!name || !email){
+        tStatus.textContent = 'Name and Email are required';
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Tag';
+        return;
+      }
+      if(!phone){
+        tStatus.textContent = 'Phone number is required';
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Tag';
+        return;
+      }
       const org = data.get('org')?.toString().trim() || '';
       const track = data.get('track')?.toString() || 'Participant';
+      const hackathon = data.get('hackathon')?.toString().trim() || '';
       const photoFile = data.get('photo');
+      if(!hackathon){
+        tStatus.textContent = 'Please choose whether you will join the hackathon.';
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Tag';
+        return;
+      }
       if(!(photoFile instanceof File) || !photoFile.size){
         tStatus.textContent = 'Please upload a participant photo.';
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Tag';
         return;
       }
 
@@ -385,6 +408,8 @@ function onReady(){
         photo = await fileToDataUrl(photoFile);
       } catch {
         tStatus.textContent = 'Unable to read photo. Try another image.';
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Tag';
         return;
       }
 
@@ -402,10 +427,13 @@ function onReady(){
           phone,
           org,
           track,
+          hackathon,
           photo
         });
       } catch (error) {
         tStatus.textContent = error.message || 'Failed to save registration to database.';
+        btnGen.disabled = false;
+        btnGen.textContent = 'Generate Tag';
         return;
       }
 
@@ -417,6 +445,7 @@ function onReady(){
         phone: savedRemote.phone,
         org: savedRemote.org || '',
         track: savedRemote.track,
+        hackathon: savedRemote.hackathon || hackathon,
         photo: savedRemote.photo,
         createdAt: existing?.createdAt || new Date().toISOString()
       };
@@ -438,6 +467,7 @@ function onReady(){
       sessionStorage.setItem('gimpa_tf_last_tag', ticket);
       sessionStorage.setItem(SESSION_REG_COMPLETE, 'true');
       sessionStorage.setItem(SESSION_REG_TRACK, savedRemote.track || '');
+      sessionStorage.setItem(SESSION_REG_HACKATHON, savedRemote.hackathon || hackathon);
 
       const submissionIdInput = document.querySelector('input[name="ticket"]');
       if(submissionIdInput) submissionIdInput.value = ticket;
@@ -448,16 +478,14 @@ function onReady(){
       if(!canSubmitProject && subStatus){
         subStatus.textContent = 'Project submission is only available to users registered as Exhibitor.';
       }
-
       if(savedRemote.track === 'Exhibitor'){
-        tStatus.textContent = 'Tag generated. Redirecting you to Project Submission...';
-        setTimeout(() => {
-          window.location.hash = 'submission';
-          if(subStatus){
-            subStatus.textContent = 'Exhibitor registration complete. Submit your project below.';
-          }
-        }, 300);
+        tStatus.textContent = 'Tag generated. Your Project Submission button is now active.';
+        if(subStatus){
+          subStatus.textContent = 'Exhibitor registration complete. Click "Go to Project Submission" when you are ready.';
+        }
       }
+      btnGen.disabled = false;
+      btnGen.textContent = 'Generate Tag';
     });
   }
 
@@ -557,7 +585,7 @@ function onReady(){
         <div><strong>Tag ID:</strong> ${ticket}</div>
         <div><strong>Title:</strong> ${s.title}</div>
         <div><strong>Abstract:</strong><br/>${s.desc.replace(/</g,'&lt;')}</div>
-        <div><strong>Repository:</strong> <a href="${s.repo}" target="_blank" rel="noopener">${s.repo}</a></div>
+        ${s.repo ? `<div><strong>Repository:</strong> <a href="${s.repo}" target="_blank" rel="noopener">${s.repo}</a></div>` : ''}
         ${s.demo ? `<div><strong>Live Demo:</strong> <a href="${s.demo}" target="_blank" rel="noopener">${s.demo}</a></div>` : ''}
         ${s.stack ? `<div><strong>Tech Stack:</strong> ${s.stack}</div>` : ''}
         ${s.proposalData ? `<div><strong>Project Proposal:</strong> <button type="button" class="btn btn-outline" id="download-proposal-btn">Download ${escapeHtml(s.proposalName || 'Proposal')}</button></div>` : ''}
@@ -585,10 +613,6 @@ function onReady(){
       const stack = data.get('stack')?.toString().trim();
       const proposalFile = data.get('proposal');
       if(!ticket || !title || !desc){ subStatus.textContent = 'Tag ID, Title, and Abstract are required.'; return; }
-      if(!demo && !repo && !stack){
-        subStatus.textContent = 'Please provide at least one of these: Live Demo URL, Code Repository URL, or Tech Stack.';
-        return;
-      }
 
       let proposalData = activeSubmission?.proposalData || '';
       let proposalName = activeSubmission?.proposalName || '';

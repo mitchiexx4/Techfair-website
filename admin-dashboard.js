@@ -6,7 +6,8 @@ const state = {
   files: [],
   assets: [],
   downloadSections: [],
-  easySpeakers: []
+  easySpeakers: [],
+  easyCommittee: []
 };
 
 function escapeHtml(text) {
@@ -75,6 +76,7 @@ function renderTagCards(rows) {
           <div class="tag-chip">${escapeHtml(r.tag || '')}</div>
           <div><strong>${escapeHtml(r.name || '')}</strong></div>
           <div>${escapeHtml(r.track || '')}</div>
+          <div>Hackathon: ${escapeHtml(r.hackathon || 'No')}</div>
           <div>${escapeHtml(r.org || 'N/A')}</div>
         </div>
       </article>`;
@@ -107,7 +109,7 @@ function csvCell(value) {
 
 function downloadTagsCsv() {
   if (!state.tags.length) return;
-  const headers = ['tag', 'name', 'email', 'phone', 'org', 'track', 'createdAt', 'updatedAt'];
+  const headers = ['tag', 'name', 'email', 'phone', 'org', 'track', 'hackathon', 'createdAt', 'updatedAt'];
   const rows = state.tags.map((r) =>
     [
       csvCell(r.tag),
@@ -116,6 +118,7 @@ function downloadTagsCsv() {
       csvCell(r.phone),
       csvCell(r.org),
       csvCell(r.track),
+      csvCell(r.hackathon || 'No'),
       csvCell(r.createdAt),
       csvCell(r.updatedAt)
     ].join(',')
@@ -351,6 +354,38 @@ function buildSpeakersLiteral(speakers) {
   return `[\n${rows.join(',\n')}\n    ]`;
 }
 
+function parseCommitteeData(html) {
+  const match = html.match(/const\s+committeeData\s*=\s*(\[[\s\S]*?\]);/);
+  if (!match) throw new Error('Could not find committee data block in committee page.');
+  const literal = match[1];
+  let parsed = [];
+  try {
+    parsed = new Function(`"use strict"; return (${literal});`)();
+  } catch {
+    throw new Error('Committee data block is invalid and could not be parsed.');
+  }
+  if (!Array.isArray(parsed)) throw new Error('Committee data is not a list.');
+  return { match, committee: parsed };
+}
+
+function buildCommitteeLiteral(groups) {
+  const rows = groups.map((group) => {
+    const members = Array.isArray(group.members) ? group.members : [];
+    const memberRows = members.map((member) => {
+      return `          { name: ${toJsString(member.name)}, role: ${toJsString(member.role)} }`;
+    });
+    return [
+      '      {',
+      `        title: ${toJsString(group.title)},`,
+      '        members: [',
+      memberRows.join(',\n'),
+      '        ]',
+      '      }'
+    ].join('\n');
+  });
+  return `[\n${rows.join(',\n')}\n    ]`;
+}
+
 function renderEasySpeakersList() {
   const root = document.getElementById('easy-speaker-list');
   if (!root) return;
@@ -363,6 +398,28 @@ function renderEasySpeakersList() {
     .join('<br/>');
 }
 
+function renderEasyCommitteeList() {
+  const root = document.getElementById('easy-committee-list');
+  if (!root) return;
+  if (!state.easyCommittee.length) {
+    root.textContent = 'No committee sections found.';
+    return;
+  }
+  const lines = [];
+  state.easyCommittee.forEach((group) => {
+    lines.push(`<strong>${escapeHtml(group.title || 'Untitled Section')}</strong>`);
+    const members = Array.isArray(group.members) ? group.members : [];
+    if (!members.length) {
+      lines.push('No members.');
+      return;
+    }
+    members.forEach((member, i) => {
+      lines.push(`${i + 1}. ${escapeHtml(member.name || 'Unknown')} - ${escapeHtml(member.role || '')}`);
+    });
+  });
+  root.innerHTML = lines.join('<br/>');
+}
+
 async function loadEasySpeakers() {
   setStatus('easy-speaker-status', 'Loading speakers...');
   try {
@@ -373,6 +430,19 @@ async function loadEasySpeakers() {
     setStatus('easy-speaker-status', `${state.easySpeakers.length} speakers loaded.`);
   } catch (error) {
     setStatus('easy-speaker-status', error.message || 'Failed to load speakers.', true);
+  }
+}
+
+async function loadEasyCommittee() {
+  setStatus('easy-committee-status', 'Loading committee...');
+  try {
+    const html = await readAdminFile('pages/committee.html');
+    const parsed = parseCommitteeData(html);
+    state.easyCommittee = parsed.committee;
+    renderEasyCommitteeList();
+    setStatus('easy-committee-status', `${state.easyCommittee.length} committee sections loaded.`);
+  } catch (error) {
+    setStatus('easy-committee-status', error.message || 'Failed to load committee.', true);
   }
 }
 
@@ -431,6 +501,85 @@ async function removeEasySpeaker() {
     setStatus('easy-speaker-status', `${removed.name} removed.`);
   } catch (error) {
     setStatus('easy-speaker-status', error.message || 'Failed to remove speaker.', true);
+  }
+}
+
+async function addEasyCommitteeMember() {
+  const section = (document.getElementById('easy-committee-section').value || '').trim();
+  const name = (document.getElementById('easy-committee-name').value || '').trim();
+  const role = (document.getElementById('easy-committee-role').value || '').trim();
+  if (!section || !name || !role) {
+    setStatus('easy-committee-status', 'Fill section, member name, and role.', true);
+    return;
+  }
+
+  setStatus('easy-committee-status', 'Adding committee member...');
+  try {
+    const html = await readAdminFile('pages/committee.html');
+    const parsed = parseCommitteeData(html);
+    const next = parsed.committee.map((group) => ({
+      title: group.title,
+      members: Array.isArray(group.members) ? [...group.members] : []
+    }));
+
+    const existing = next.find((group) => (group.title || '').toLowerCase() === section.toLowerCase());
+    if (existing) {
+      existing.members.push({ name, role });
+    } else {
+      next.push({ title: section, members: [{ name, role }] });
+    }
+
+    const updatedLiteral = buildCommitteeLiteral(next);
+    const updatedHtml = html.replace(parsed.match[1], updatedLiteral);
+    await writeAdminFile('pages/committee.html', updatedHtml);
+
+    state.easyCommittee = next;
+    renderEasyCommitteeList();
+    setStatus('easy-committee-status', `${name} added to ${section}.`);
+  } catch (error) {
+    setStatus('easy-committee-status', error.message || 'Failed to add committee member.', true);
+  }
+}
+
+async function removeEasyCommitteeMember() {
+  const name = (document.getElementById('easy-committee-remove-name').value || '').trim();
+  if (!name) {
+    setStatus('easy-committee-status', 'Enter the member name to remove.', true);
+    return;
+  }
+
+  setStatus('easy-committee-status', `Removing ${name}...`);
+  try {
+    const html = await readAdminFile('pages/committee.html');
+    const parsed = parseCommitteeData(html);
+    const next = parsed.committee
+      .map((group) => ({
+        title: group.title,
+        members: (Array.isArray(group.members) ? group.members : []).filter(
+          (member) => (member.name || '').toLowerCase() !== name.toLowerCase()
+        )
+      }))
+      .filter((group) => group.members.length > 0);
+
+    const removed = parsed.committee.some((group) =>
+      (Array.isArray(group.members) ? group.members : []).some(
+        (member) => (member.name || '').toLowerCase() === name.toLowerCase()
+      )
+    );
+    if (!removed) {
+      setStatus('easy-committee-status', `${name} not found.`, true);
+      return;
+    }
+
+    const updatedLiteral = buildCommitteeLiteral(next);
+    const updatedHtml = html.replace(parsed.match[1], updatedLiteral);
+    await writeAdminFile('pages/committee.html', updatedHtml);
+
+    state.easyCommittee = next;
+    renderEasyCommitteeList();
+    setStatus('easy-committee-status', `${name} removed.`);
+  } catch (error) {
+    setStatus('easy-committee-status', error.message || 'Failed to remove committee member.', true);
   }
 }
 
@@ -725,15 +874,22 @@ async function onReady() {
   document.getElementById('upload-asset-btn').addEventListener('click', uploadAsset);
   document.getElementById('refresh-assets-btn').addEventListener('click', refreshAssetList);
   document.getElementById('logout-btn').addEventListener('click', logout);
+  document.getElementById('open-hackathon-confirmation').addEventListener('click', () => {
+    window.location.href = 'admin-hackathon.html';
+  });
   document.getElementById('easy-speaker-refresh').addEventListener('click', loadEasySpeakers);
   document.getElementById('easy-speaker-add').addEventListener('click', addEasySpeaker);
   document.getElementById('easy-speaker-remove').addEventListener('click', removeEasySpeaker);
+  document.getElementById('easy-committee-refresh').addEventListener('click', loadEasyCommittee);
+  document.getElementById('easy-committee-add').addEventListener('click', addEasyCommitteeMember);
+  document.getElementById('easy-committee-remove').addEventListener('click', removeEasyCommitteeMember);
   document.getElementById('easy-schedule-refresh').addEventListener('click', loadEasySchedule);
   document.getElementById('easy-schedule-add').addEventListener('click', addEasyScheduleSession);
   document.getElementById('easy-schedule-remove').addEventListener('click', removeEasyScheduleSession);
 
   await refreshAssetList();
   await loadEasySpeakers();
+  await loadEasyCommittee();
   await loadEasySchedule();
 }
 

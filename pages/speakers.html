@@ -24,8 +24,8 @@
           <button class="nav-drop-toggle" aria-expanded="false" aria-haspopup="true" type="button">About</button>
           <div class="nav-dropdown-menu">
             <a href="about-institution.html">About the Institution</a>
-            <a href="about.html">About the Techfair</a>
-            <a href="committee.html">Commitee</a>
+            <a href="about.html">About the Tech Fair</a>
+            <a href="committee.html">Committee</a>
             <a href="schedule.html">Schedule</a>
             <a href="awards-judging.html">Awards</a>
           </div>
@@ -43,7 +43,6 @@
       </nav>
       <div class="nav-cta">
         <a class="btn btn-accent" href="portal.html">Register Now</a>
-        <div class="crest"><img src="../assets/gimpa-logo.png" alt="GIMPA logo" /></div>
       </div>
     </div>
   </header>
@@ -80,7 +79,7 @@
         <h4>Contact</h4>
         <ul class="list-plain">
           <li>GIMPA Campus, Achimota, Accra, Ghana</li>
-          <li>+233 (0) 302 405 805</li>
+          <li>0559044181</li>
           <li>techfair@gimpa.edu.gh</li>
         </ul>
       </div>
@@ -101,24 +100,35 @@
 
   <script>
     const data = [
-      {name:'Abena Frimpong', role:'Product Manager', org:'Microsoft Africa', topic:'Digital Transformation', img:'../assets/assetsspeaker-akua.jpg.jpg'},
-      {name:'Kofi Asante', role:'Blockchain Developer', org:'CryptoGhana', topic:'Blockchain & Fintech', img:'../assets/assetsspeaker-kwame.jpg.jpg'},
-      {name:'Ama Gyasi', role:'UX Design Lead', org:'Design Africa', topic:'User-Centered Design', img:'../assets/assetsspeaker-samuel.jpg.jpg'}
+      {name:'Akua Mensah', role:'Innovation Strategist', org:'GIMPA SOTSS', topic:'Designing student-led innovation ecosystems', img:'../assets/assetsspeaker-akua.jpg.jpg'},
+      {name:'Kwame Boateng', role:'Software Engineer', org:'Ghana Tech Community', topic:'Building scalable products with small teams', img:'../assets/assetsspeaker-kwame.jpg.jpg'},
+      {name:'Samuel Owusu', role:'AI Research Advocate', org:'Digital Futures Africa', topic:'Practical AI opportunities for African institutions', img:'../assets/assetsspeaker-samuel.jpg.jpg'},
+      {name:'Mary Fosuwaa', role:'Enterprise Architect', org:'GIMPA', topic:'Enterprise architecture', img:'https://pin.it/2hW4ooGD5'}
     ];
 
     const grid = document.getElementById('speakers-grid');
-    grid.innerHTML = data.map(s => `
-      <article class="speaker-card">
-        <div class="speaker-img" style="background-image:url('${s.img}')"></div>
-        <div class="speaker-body">
-          <h3>${s.name}</h3>
-          <div class="role orange">${s.role}</div>
-          <div class="org">${s.org}</div>
-          <div class="topic">Topic: ${s.topic}</div>
-          <div class="socials"><span class='social'>in</span><span class='social'>x</span></div>
-        </div>
-      </article>
-    `).join('');
+    if (!Array.isArray(data) || data.length === 0) {
+      grid.innerHTML = `
+        <article class="speaker-card speaker-card-blank">
+          <div class="speaker-body">
+            <h3>Speakers Coming Soon</h3>
+            <div class="org">New speakers will appear here once added from the admin dashboard.</div>
+          </div>
+        </article>
+      `;
+    } else {
+      grid.innerHTML = data.map((speaker) => `
+        <article class="speaker-card">
+          <div class="speaker-img" style="background-image:url('${speaker.img}')"></div>
+          <div class="speaker-body">
+            <h3>${speaker.name}</h3>
+            <div class="orange">${speaker.role}</div>
+            <div class="org">${speaker.org}</div>
+            <div class="topic">${speaker.topic}</div>
+          </div>
+        </article>
+      `).join('');
+    }
   </script>
 </body>
 </html>

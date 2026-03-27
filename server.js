@@ -172,7 +172,7 @@ async function ensureLocalTagUnique(candidate) {
   throw new Error('Could not generate a unique tag. Please retry.');
 }
 
-async function saveRegistrationLocal({ tag, name, email, phone, org, track, photo }) {
+async function saveRegistrationLocal({ tag, name, email, phone, org, track, hackathon = 'No', photo }) {
   const records = await readLocalRegistrations();
   const cleanEmail = email.toLowerCase();
   const existing = Object.values(records).find((item) => item.email === cleanEmail);
@@ -186,6 +186,7 @@ async function saveRegistrationLocal({ tag, name, email, phone, org, track, phot
     phone,
     org,
     track,
+    hackathon,
     photo,
     createdAt: existing?.createdAt || now,
     updatedAt: now
@@ -653,11 +654,22 @@ async function initDb() {
       phone VARCHAR(64) NOT NULL,
       org VARCHAR(255) NULL,
       category VARCHAR(128) NOT NULL,
+      hackathon_interest VARCHAR(8) NOT NULL DEFAULT 'No',
       photo_data LONGTEXT NOT NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
+
+  const [registrationColumns] = await pool.query(
+    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+    [REG_TABLE]
+  );
+  const existingRegistrationColumns = new Set(registrationColumns.map((row) => row.COLUMN_NAME));
+
+  if (!existingRegistrationColumns.has('hackathon_interest')) {
+    await pool.query(`ALTER TABLE ${REG_TABLE} ADD COLUMN hackathon_interest VARCHAR(8) NOT NULL DEFAULT 'No'`);
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ${SUB_TABLE} (
@@ -716,6 +728,7 @@ app.post('/api/registrations', async (req, res) => {
       phone,
       org = '',
       track,
+      hackathon = 'No',
       photo
     } = req.body || {};
 
@@ -723,6 +736,7 @@ app.post('/api/registrations', async (req, res) => {
     const cleanEmail = (email || '').toString().trim().toLowerCase();
     const cleanPhone = (phone || '').toString().trim();
     const category = (track || '').toString().trim();
+    const hackathonChoice = String(hackathon || 'No').trim().toLowerCase() === 'yes' ? 'Yes' : 'No';
     const photoData = (photo || '').toString().trim();
 
     if (!fullName || !cleanEmail || !cleanPhone || !category || !photoData) {
@@ -741,16 +755,16 @@ app.post('/api/registrations', async (req, res) => {
         tagId = existingByEmail[0].tag_id;
         await pool.query(
           `UPDATE ${REG_TABLE}
-           SET full_name = ?, phone = ?, org = ?, category = ?, photo_data = ?
+           SET full_name = ?, phone = ?, org = ?, category = ?, hackathon_interest = ?, photo_data = ?
            WHERE tag_id = ?`,
-          [fullName, cleanPhone, org, category, photoData, tagId]
+          [fullName, cleanPhone, org, category, hackathonChoice, photoData, tagId]
         );
       } else {
         tagId = await ensureTagUnique(clientTag);
         await pool.query(
-          `INSERT INTO ${REG_TABLE} (tag_id, full_name, email, phone, org, category, photo_data)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [tagId, fullName, cleanEmail, cleanPhone, org, category, photoData]
+          `INSERT INTO ${REG_TABLE} (tag_id, full_name, email, phone, org, category, hackathon_interest, photo_data)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [tagId, fullName, cleanEmail, cleanPhone, org, category, hackathonChoice, photoData]
         );
       }
       databaseReady = true;
@@ -761,6 +775,7 @@ app.post('/api/registrations', async (req, res) => {
         phone: cleanPhone,
         org,
         track: category,
+        hackathon: hackathonChoice,
         photo: photoData
       };
     } catch (error) {
@@ -773,6 +788,7 @@ app.post('/api/registrations', async (req, res) => {
         phone: cleanPhone,
         org,
         track: category,
+        hackathon: hackathonChoice,
         photo: photoData
       });
       tagId = savedRegistration.tag;
@@ -810,7 +826,7 @@ app.get('/api/registrations/:tag', async (req, res) => {
     let registration = null;
     try {
       const [rows] = await pool.query(
-        `SELECT tag_id AS tag, full_name AS name, email, phone, org, category AS track, photo_data AS photo
+        `SELECT tag_id AS tag, full_name AS name, email, phone, org, category AS track, hackathon_interest AS hackathon, photo_data AS photo
          FROM ${REG_TABLE}
          WHERE tag_id = ?
          LIMIT 1`,
@@ -837,7 +853,7 @@ app.get('/api/registrations/:tag', async (req, res) => {
 
 app.post('/api/submissions', async (req, res) => {
   try {
-    const { tag, title, desc, demo = '', repo, stack = '', proposalName = '', proposalData = '' } = req.body || {};
+    const { tag, title, desc, demo = '', repo = '', stack = '', proposalName = '', proposalData = '' } = req.body || {};
     const tagId = normalizeTag(tag);
     const cleanTitle = (title || '').toString().trim();
     const cleanDesc = (desc || '').toString().trim();
@@ -847,8 +863,8 @@ app.post('/api/submissions', async (req, res) => {
     const cleanProposalName = (proposalName || '').toString().trim();
     const cleanProposalData = (proposalData || '').toString().trim();
 
-    if (!tagId || !cleanTitle || !cleanDesc || !cleanRepo) {
-      return res.status(400).json({ ok: false, error: 'Tag ID, title, description and repository are required.' });
+    if (!tagId || !cleanTitle || !cleanDesc) {
+      return res.status(400).json({ ok: false, error: 'Tag ID, title and description are required.' });
     }
 
     let regInfo = null;
@@ -1076,6 +1092,7 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
   try {
     const category = (req.query.category || '').toString().trim();
+    const hackathonOnly = (req.query.hackathon || '').toString().trim().toLowerCase() === 'yes';
 
     const baseSql = `
       SELECT
@@ -1085,6 +1102,7 @@ app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
         phone,
         org,
         category AS track,
+        hackathon_interest AS hackathon,
         photo_data AS photo,
         created_at AS createdAt,
         updated_at AS updatedAt
@@ -1094,8 +1112,10 @@ app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
     let sql = `${baseSql} ORDER BY created_at DESC`;
     let params = [];
     if (category) {
-      sql = `${baseSql} WHERE category = ? ORDER BY created_at DESC`;
+      sql = `${baseSql} WHERE category = ?${hackathonOnly ? " AND hackathon_interest = 'Yes'" : ''} ORDER BY created_at DESC`;
       params = [category];
+    } else if (hackathonOnly) {
+      sql = `${baseSql} WHERE hackathon_interest = 'Yes' ORDER BY created_at DESC`;
     }
 
     try {
@@ -1105,7 +1125,10 @@ app.get('/api/admin/registrations', requireAdmin, async (req, res) => {
     } catch (error) {
       if (!isDatabaseUnavailable(error)) throw error;
       databaseReady = false;
-      const rows = await listRegistrationsLocal(category);
+      let rows = await listRegistrationsLocal(category);
+      if (hackathonOnly) {
+        rows = rows.filter((item) => String(item.hackathon || '').toLowerCase() === 'yes');
+      }
       res.json({ ok: true, mode: 'local-fallback', registrations: rows });
     }
   } catch (error) {
@@ -1279,6 +1302,10 @@ app.get('/pages/admin-login', (_req, res) => {
 
 app.get('/pages/admin-dashboard', (_req, res) => {
   res.sendFile(path.join(__dirname, 'pages', 'admin-dashboard.html'));
+});
+
+app.get('/pages/admin-hackathon', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'pages', 'admin-hackathon.html'));
 });
 
 app.use((err, _req, res, _next) => {

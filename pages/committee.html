@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Commitee - GIMPA SOTSS Tech Fair 2026</title>
+  <title>Committee - GIMPA SOTSS Tech Fair 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -24,8 +24,8 @@
           <button class="nav-drop-toggle active" aria-expanded="false" aria-haspopup="true" type="button">About</button>
           <div class="nav-dropdown-menu">
             <a href="about-institution.html">About the Institution</a>
-            <a href="about.html">About the Techfair</a>
-            <a href="committee.html" class="active">Commitee</a>
+            <a href="about.html">About the Tech Fair</a>
+            <a href="committee.html" class="active">Committee</a>
             <a href="schedule.html">Schedule</a>
             <a href="awards-judging.html">Awards</a>
           </div>
@@ -51,30 +51,11 @@
   <main>
     <section class="section container">
       <header class="section-header">
-        <h2>Commitee</h2>
+        <h2>Committee</h2>
         <p>Meet the team coordinating the GIMPA SOTSS Tech Fair 2026 programme.</p>
       </header>
 
-      <div class="content-stack">
-        <article class="info-panel">
-          <h3>Program Organizers</h3>
-          <ul>
-            <li><strong>Dr. Nana Ofori</strong> - Lead Organizer, SOTSS</li>
-            <li><strong>Maame Yaa Boateng</strong> - Program Operations Coordinator</li>
-            <li><strong>Kwaku Asare</strong> - Industry Partnerships Coordinator</li>
-            <li><strong>Esi Armah</strong> - Student Innovation Coordinator</li>
-          </ul>
-        </article>
-
-        <article class="info-panel">
-          <h3>Co-Chairs</h3>
-          <ul>
-            <li><strong>Prof. Daniel A. Mensah</strong> - Academic Co-Chair</li>
-            <li><strong>Mrs. Akosua Nyame</strong> - Industry Co-Chair</li>
-            <li><strong>Mr. Kofi Agyemang</strong> - Programme Co-Chair</li>
-          </ul>
-        </article>
-      </div>
+      <div class="content-stack" id="committee-sections"></div>
     </section>
   </main>
 
@@ -100,7 +81,7 @@
         <h4>Contact</h4>
         <ul class="list-plain">
           <li>GIMPA Campus, Achimota, Accra, Ghana</li>
-          <li>+233 (0) 302 405 805</li>
+          <li>0559044181</li>
           <li>techfair@gimpa.edu.gh</li>
         </ul>
       </div>
@@ -118,6 +99,58 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    const committeeData = [
+      {
+        title: 'Program Organizers',
+        members: [
+          { name: 'Dr. Nana Ofori', role: 'Lead Organizer, SOTSS' },
+          { name: 'Maame Yaa Boateng', role: 'Program Operations Coordinator' },
+          { name: 'Kwaku Asare', role: 'Industry Partnerships Coordinator' },
+          { name: 'Esi Armah', role: 'Student Innovation Coordinator' }
+        ]
+      },
+      {
+        title: 'Co-Chairs',
+        members: [
+          { name: 'Prof. Daniel A. Mensah', role: 'Academic Co-Chair' },
+          { name: 'Mrs. Akosua Nyame', role: 'Industry Co-Chair' },
+          { name: 'Mr. Kofi Agyemang', role: 'Programme Co-Chair' }
+        ]
+      },
+      {
+        title: 'organizer',
+        members: [
+          { name: 'Julius', role: 'student' }
+        ]
+      }
+    ];
+
+    const sectionsRoot = document.getElementById('committee-sections');
+    if (!Array.isArray(committeeData) || committeeData.length === 0) {
+      sectionsRoot.innerHTML = `
+        <article class="info-panel">
+          <h3>Committee Coming Soon</h3>
+          <p>Committee members will appear here once added from the admin dashboard.</p>
+        </article>
+      `;
+    } else {
+      sectionsRoot.innerHTML = committeeData.map((group) => {
+        const members = Array.isArray(group.members) ? group.members : [];
+        const items = members.length
+          ? members.map((member) => `<li><strong>${member.name}</strong> - ${member.role}</li>`).join('')
+          : '<li>No members added yet.</li>';
+
+        return `
+          <article class="info-panel">
+            <h3>${group.title}</h3>
+            <ul>${items}</ul>
+          </article>
+        `;
+      }).join('');
+    }
+  </script>
 </body>
 </html>
 

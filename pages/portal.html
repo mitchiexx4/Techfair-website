@@ -25,8 +25,8 @@
           <button class="nav-drop-toggle" aria-expanded="false" aria-haspopup="true" type="button">About</button>
           <div class="nav-dropdown-menu">
             <a href="about-institution.html">About the Institution</a>
-            <a href="about.html">About the Techfair</a>
-            <a href="committee.html">Commitee</a>
+            <a href="about.html">About the Tech Fair</a>
+            <a href="committee.html">Committee</a>
             <a href="schedule.html">Schedule</a>
             <a href="awards-judging.html">Awards</a>
           </div>
@@ -53,7 +53,7 @@
     <section class="section container" id="registration">
       <header class="section-header">
         <h2>Participant Registration</h2>
-        <p>Register to receive your unique event tag for entry and submissions.</p>
+        <p>Register to receive your unique event tag for entry, proposal submission, and the June 3, 2026 exhibition showcase at Greenhill Campus.</p>
       </header>
       <div class="card-grid cols-2">
         <form id="reg-form" class="feature-card" onsubmit="return false;">
@@ -72,7 +72,6 @@
             </label>
             <label>Registration Category<br/>
               <select name="track" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px">
-                <option>Competitor</option>
                 <option>Exhibitor</option>
                 <option>General Attendee</option>
                 <option>Participant</option>
@@ -80,6 +79,17 @@
                 <option>Media</option>
               </select>
             </label>
+            <fieldset style="border:1px solid #e3e8ef;border-radius:10px;padding:12px 14px;margin:0">
+              <legend style="padding:0 6px">Will you participate in the hackathon?</legend>
+              <label style="display:inline-flex;align-items:center;gap:8px;margin-right:18px">
+                <input type="radio" name="hackathon" value="Yes" required />
+                <span>Yes</span>
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:8px">
+                <input type="radio" name="hackathon" value="No" required />
+                <span>No</span>
+              </label>
+            </fieldset>
             <label>Upload Photo<br/>
               <input type="file" required name="photo" accept="image/*" style="width:100%;padding:10px;border:1px solid #e3e8ef;border-radius:10px;background:#fff"/>
             </label>
@@ -104,8 +114,8 @@
             </div>
             <div class="id-tag-footer">
               <div id="ticket-id">TAG-XXXX</div>
-              <div>Date: Apr 16-17, 2026 | Exhibition: Jun 3, 2026</div>
-              <div>Venue: GIMPA Campus</div>
+              <div>Festival: Apr 16-17, 2026 | Main Showcase: Jun 3, 2026</div>
+              <div>Venue: GIMPA, Greenhill Campus</div>
             </div>
           </div>
           <div style="margin-top:12px;display:flex;gap:10px">
@@ -119,16 +129,17 @@
     <section class="section container" id="submission" hidden style="display:none">
       <header class="section-header">
         <h2>Project Submission</h2>
-        <p id="submission-description">Submit your project details, abstract, repository link, and project proposal.</p>
+        <p id="submission-description">Submit your project details and proposal for review. Shortlisted projects will be invited to exhibit at the main showcase.</p>
       </header>
       <div class="card-grid cols-2" style="align-items:start">
         <div class="feature-card">
           <h3>Submission Format</h3>
-          <p>Upload your project proposal as a PDF only, and make sure your abstract clearly explains the problem, proposed solution, impact, and implementation approach.</p>
+          <p>Submissions should not exceed 550 words in total and should explain the background, problem, proposed solution, target sector, and expected impact in clear non-technical language where possible.</p>
           <ul style="margin:0;padding-left:18px;color:#4e5d6f;line-height:1.7">
             <li>Proposal format: PDF only</li>
-            <li>Include project title, team details, abstract, methodology, and expected impact</li>
-            <li>You must provide at least one of these: live demo URL, code repository URL, or tech stack</li>
+            <li>Include project title, rationale, problem statement, proposed solution, target industry or sector, and expected impact</li>
+            <li>Projects should be IT-based or technology-enabled solutions</li>
+            <li>Live demo URL, code repository URL, and tech stack are optional supporting details.</li>
             <li>Edits are allowed only within 24 hours after first submission</li>
           </ul>
           <div style="margin-top:14px">
@@ -147,7 +158,7 @@
               <input type="text" required name="title" placeholder="Your project title" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
             </label>
             <label>Abstract<br/>
-              <textarea required name="desc" rows="4" placeholder="Problem, solution, impact, and key contribution" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"></textarea>
+              <textarea required name="desc" rows="4" placeholder="Rationale, problem statement, solution, target sector, and expected impact" style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"></textarea>
             </label>
             <label>Live Demo URL (optional)<br/>
               <input type="url" name="demo" placeholder="https://..." style="width:100%;padding:12px;border:1px solid #e3e8ef;border-radius:10px"/>
@@ -211,7 +222,7 @@
         <h4>Contact</h4>
         <ul class="list-plain">
           <li>GIMPA Campus, Achimota, Accra, Ghana</li>
-          <li>+233 (0) 302 405 805</li>
+          <li>0559044181</li>
           <li>techfair@gimpa.edu.gh</li>
         </ul>
       </div>
